@@ -1,0 +1,146 @@
+<?php 
+
+
+function rr_map_init(){
+	if(request_path()=='map_do_search'){
+		set_time_limit(3600);
+		$search_result = rr_map_do_search();
+		echo json_encode($search_result['find']);
+		exit;
+	}
+	
+}
+
+function rr_map_do_search(){
+	error_reporting(E_ALL);
+	ini_set('display_errors', TRUE);
+	ini_set('display_startup_errors', TRUE);
+
+
+	$results = array();
+
+	//Using google api parse coordinate
+	$keywords = ( $_REQUEST["term"] );
+	$location = urlencode( $_REQUEST["location"] );
+	$region = ( $_REQUEST["region"] );
+
+	if(empty($location) && empty($keywords)){
+		$query = db_select('node', 'n');
+		$query->fields('n', array('nid'))->distinct();
+		$query->condition('n.status', 1);
+		$query->addTag('node_access');
+		$query->condition('n.type', 'australian_apprenticeship_centre');
+		$query->orderBy('n.title');
+		$db_result = $query->execute()->fetchAll();
+		return populateNodes($db_result);
+		/*$records= array();
+		foreach ($db_result as $record) {
+			$node_alias = drupal_get_path_alias('node/'.$record->nid);
+			$node = node_load( $record->nid );
+			$node->node_alias = $node_alias;
+			$records[] = $node;
+		}
+		$results["find"] = $records;	
+		return $results ;*/
+	}
+
+	if(!empty($location)){
+		$url = "http://maps.googleapis.com/maps/api/geocode/json?address=".$location.",+AU&sensor=false";
+		$geocode_object = json_decode( file_get_contents($url) );
+
+		if(count($geocode_object->results)>0 && isset($geocode_object->results[0]->geometry->location) ){
+			$lat = $geocode_object->results[0]->geometry->location->lat;
+			$lng = $geocode_object->results[0]->geometry->location->lng;		
+		}	
+	}
+	
+	if(empty($keywords)){
+		$sql  = "SELECT
+			node.*,
+			entity_id,
+			bundle,
+			deleted,
+			field_data_field_aac_location.field_aac_location_lat ,
+			field_data_field_aac_location.field_aac_location_lon ,
+			ACOS( SIN( RADIANS( field_aac_location_lat ) ) * SIN( RADIANS( :lat ) ) + COS( RADIANS( field_aac_location_lat ) ) * COS( RADIANS( :lat )) * COS( RADIANS( field_aac_location_lon ) - RADIANS( :lng )) ) * 6380 AS distance
+
+			FROM field_data_field_aac_location 
+
+			LEFT JOIN node ON field_data_field_aac_location.entity_id = node.nid
+			WHERE
+			#ACOS( SIN( RADIANS( field_aac_location_lat ) ) * SIN( RADIANS( :lat ) ) + COS( RADIANS( field_aac_location_lat ) ) * COS( RADIANS( :lat )) * COS( RADIANS( field_aac_location_lon ) - RADIANS( :lng )) ) * 6380 < 50
+			#AND 
+			deleted = 0
+			AND node.status = 1
+			ORDER BY distance";
+
+		$db_result = db_query($sql, array(":lat"=>$lat, ":lng"=>$lng))->fetchAll();
+
+		return populateNodes($db_result);
+	}
+
+	// query our search index, joined to our nodes table
+	$query = db_select('search_index', 'i', array('target' => 'slave'))->extend('SearchQuery');
+	$query->join('node', 'n', 'n.nid = i.sid');
+	// search term
+	$query->searchExpression(preg_replace("/[^a-zA-Z0-9 ]/s", "", $keywords), 'node');
+	
+	$query->fields('n', array('nid'))->distinct();
+	$query->condition('n.status', 1);
+	$query->addTag('node_access');
+	$query->condition('n.type', 'australian_apprenticeship_centre');
+
+	if(!empty($location)){
+		$query->join('field_data_field_aac_location', 'coords', 'n.nid = coords.entity_id');
+		$query->condition('coords.entity_type', 'node');	
+		$query->orderBy("ACOS( SIN( RADIANS( field_aac_location_lat ) ) * SIN( RADIANS( $lat ) ) + COS( RADIANS( field_aac_location_lat ) ) * COS( RADIANS( $lat )) * COS( RADIANS( field_aac_location_lon ) - RADIANS( $lng )) ) * 6380 ","ASC");
+		//$query->where("ACOS( SIN( RADIANS( field_aac_location_lat ) ) * SIN( RADIANS( :lat ) ) + COS( RADIANS( field_aac_location_lat ) ) * COS( RADIANS( :lat )) * COS( RADIANS( field_aac_location_lon ) - RADIANS( :lng )) ) * 6380 < 50", array(":lat"=>$lat, ":lng"=>$lng));
+	}
+	// $query = $query->extend('PagerDefault');
+
+	_node_rankings($query);
+
+	$db_result = $query->execute()->fetchAll();
+
+	return populateNodes($db_result);
+}
+
+function administrative_area($abbrv){
+	$administrative_area = array('ACT' => "Australian Capital Territory",
+							 'NSW' => "New South Wales",
+							 "NT"  => "Northern Territory",
+							 "QLD" => "Queensland",
+							 "SA"  => "South Australia",
+							 "TAS" => "Tasmania",
+							 "VIC" => "Victoria",
+							 "WA"  => "Western Australia"	
+							 );
+	$abbrv = strtoupper($abbrv);
+	return $administrative_area[$abbrv];
+}
+
+function populateNodes($db_result){
+	$records= array();
+	foreach ($db_result as $record) {
+		$node_alias = drupal_get_path_alias('node/'.$record->nid);
+		$node = node_load( $record->nid );
+		$node->node_alias = $node_alias;
+		$type_tid = $node->field_aac_type['und'][0]['tid'];
+		if(!empty($type_tid)){
+			$node->type = taxonomy_term_load($type_tid)->name;
+		}
+		if(!empty($node->field_aac_address['und'][0]['administrative_area'])){
+			$node->field_aac_address['und'][0]['administrative_area'] = administrative_area($node->field_aac_address['und'][0]['administrative_area']);	
+			$node->field_aac_address['und'][0]['country'] = "Australia";
+		}
+		
+		$records[] = $node;
+	}
+
+	$results["find"] = $records;	
+	return $results ;
+}
+
+
+
+ ?>
