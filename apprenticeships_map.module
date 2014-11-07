@@ -41,12 +41,10 @@ function apprenticeships_map_block_view($delta = '') {
 		case 'apprenticeships_map_home':
 			$block['subject'] = t('Find an Australian Apprenticeship Centre');
 			if (user_access('access content')) {
-				module_load_include('inc', 'apprenticeships_map', 'apprenticeships_map.home');
 			}
 		case 'apprenticeships_map_internal':
 			$block['subject'] = t('Find an Australian Apprenticeship Centre');
 			if (user_access('access content')) {
-				module_load_include('inc', 'apprenticeships_map', 'apprenticeships_map.internal');
 			}
 	}
 }
