@@ -1,22 +1,4 @@
 <?php
-
-/**
- * Implements hook_theme().
- */
-
-function apprenticeships_map_theme() {
-  return array(
-    'apprenticeships_map_output' => array(
-      'variables' => array(
-        'title' => NULL,
-        'content' => NULL,
-        'popular_content' => NULL,
-       ),
-      'template' => 'templates/apprenticeships_map_home',
-    ),
-  );
-}
-
 /**
  * Implements hook_block_info()
  */
@@ -32,6 +14,7 @@ function apprenticeships_map_block_info() {
 	);
 	return $blocks;
 }
+
 /**
  * Implements hook_block_view()
  */
@@ -39,13 +22,184 @@ function apprenticeships_map_block_info() {
 function apprenticeships_map_block_view($delta = '') {
 	switch ($delta) {
 		case 'apprenticeships_map_home':
+			$location = 'home';
 			$block['subject'] = t('Find an Australian Apprenticeship Centre');
-			if (user_access('access content')) {
-			}
+			$block['title'] = t('Find an AAC');
+			$block['content']['wrapper'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'class' => array($location . '-map'),
+				),
+			);
+			$block['content']['wrapper']['body'] = array(
+				'#prefix' => '<p>',
+				'#markup' => t('<a href="@url" title="Find an Australian Apprenticeship Centre near you">Find an Australian Apprenticeships Centre</a>', array('@url' => url('find-my-aac/full-list'))),
+				'#suffix' => '</p>',
+			);
+			$block['content']['wrapper']['map-canvas'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'id' => array("map-canvas-" . $location),
+				),
+			);
+			$block['content']['wrapper']['map-feedback'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'id' => 'map-feedback',
+				),
+			);
+			$block['content']['wrapper']['map-overlay'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'id' => 'map-overlay',
+				),
+			);
+			$block['content']['wrapper']['form-wrapper'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'class' => $location . '-map-form-wrapper',
+				),
+			);
+			$block['content']['wrapper']['form-wrapper']['form-body'] = drupal_get_form('apprenticeships_map_aac_search');
+			$block['content']['wrapper']['footer'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'class' => 'region-search',
+				),
+			);
+			$block['content']['wrapper']['footer']['content'] = array(
+				'#prefix' => '<p>',
+				'#markup' => t('<a href="@url" title="Find my AAC by region">Find an AAC by region</a>', array('@url' => url('find-my-aac/by-region'))),
+				'#suffix' => '</p>',
+			);
+		break;
+
 		case 'apprenticeships_map_internal':
+			$location = 'internal';
 			$block['subject'] = t('Find an Australian Apprenticeship Centre');
-			if (user_access('access content')) {
-			}
+			$block['subject'] = t('Find an Australian Apprenticeship Centre');
+			$block['content']['wrapper'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'class' => array($location . '-map'),
+				),
+			);
+			$block['content']['wrapper']['body'] = array(
+				'#prefix' => '<p>',
+				'#markup' => t('<a href="@url" title="Find an Australian Apprenticeship Centre near you">Find an Australian Apprenticeships Centre</a>', array('@url' => url('find-my-aac/full-list'))),
+				'#suffix' => '</p>',
+			);
+			$block['content']['wrapper']['map-canvas'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'id' => array("map-canvas-" . $location),
+				),
+			);
+			$block['content']['wrapper']['map-feedback'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'id' => 'map-feedback',
+				),
+			);
+			$block['content']['wrapper']['map-overlay'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'id' => 'map-overlay',
+				),
+			);
+			$block['content']['wrapper']['form-wrapper'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'class' => $location . '-map-form-wrapper',
+				),
+			);
+			$block['content']['wrapper']['form-wrapper']['text'] = array(
+				'#prefix' => '<p>',
+				'#markup' => 'Enter your search terms below. You can do a simple text search for the city, postcode or company name.',
+				'#suffix' => '</p>',
+			);
+			$block['content']['wrapper']['form-wrapper']['form-body'] = drupal_get_form('apprenticeships_map_aac_search', $location);
+			$block['content']['wrapper']['footer'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'class' => 'region-search',
+				),
+			);
+			$block['content']['wrapper']['footer']['content'] = array(
+				'#prefix' => '<p>',
+				'#markup' => t('<a href="@url" title="Find my AAC by region">Find an AAC by region.</a>', array('@url' => url('find-my-aac/by-region'))),
+				'#suffix' => '</p>',
+			);
+		break;
+	}
+	return $block;
+}
+
+function apprenticeships_map_aac_search($form_state, $location) {
+
+	$base_path = drupal_get_path('module', 'apprenticeships_map');
+
+	$apprenticeships_map_settings = array(
+		'basePath' => $base_path,
+	);
+
+	drupal_add_js(array('apprenticeships_map' => $apprenticeships_map_settings), 'setting');
+	drupal_add_js('https://maps.googleapis.com/maps/api/js?client=gme-readingroom&sensor=true', array(
+		'type' => 'external',
+		'weight' => 0,
+	));
+	drupal_add_js($base_path . '/js/infobox_packed.js', array(
+		'weight' => 5,
+	));
+	drupal_add_js($base_path . '/js/jquery.placeholder.min.js', array(
+		'weight' => 5,
+	));
+	drupal_add_js($base_path . '/js/apprenticeships_map.js', array(
+		'scope' => 'footer',
+	));
+
+	$form['location'] = array(
+		'#title' => t('Location'),
+		'#type' => 'textfield',
+		'#size' => 10,
+		'#attributes' => array(
+			'placeholder' => t('City, Suburb'),
+		),
+	);
+
+	$form['keywords'] = array(
+		'#title' => t('Keywords'),
+		'#type' => 'textfield',
+		'#size' => 10,
+		'#attributes' => array(
+			'placeholder' => t('Keywords'),
+		),
+	);
+
+	$form['submit'] = array(
+		'#type' => 'button',
+		'#value' => 'Search',
+	);
+
+	$form['#submit'] = array('apprenticeships_map_aac_search_submit');
+	$form['#attributes']['class'] = array('search-block-form');
+
+	return $form;
+}
+
+function apprenticeships_map_aac_search_submit($form, &$form_state) {
+	drupal_set_message(t('Form submitted!'));
+	// Load some behaviour here.
+}
+
+function apprenticeships_map_aac_search_validate($form, &$form_state) {
+	
+	$location = $form_state['values']['location'];
+	$keywords = $form_state['values']['keywords'];
+
+	if (!$location && !$keywords) {
+		form_set_error('location', 'Please enter a location or one or more keywords.');
+		form_set_error('keywords', '');
 	}
 }
 
@@ -54,6 +208,7 @@ function apprenticeships_map_block_view($delta = '') {
  */
 
 function apprenticeships_map_init(){
+	//drupal_add_js('js/apprenticeships_map.js', 'file');
 	if(request_path()=='map_do_search'){
 		set_time_limit(3600);
 		$search_result = apprenticeships_map_do_search();
@@ -87,16 +242,7 @@ function apprenticeships_map_do_search(){
 		$query->condition('n.type', 'australian_apprenticeship_centre');
 		$query->orderBy('n.title');
 		$db_result = $query->execute()->fetchAll();
-		return populateNodes($db_result);
-		/*$records= array();
-		foreach ($db_result as $record) {
-			$node_alias = drupal_get_path_alias('node/'.$record->nid);
-			$node = node_load( $record->nid );
-			$node->node_alias = $node_alias;
-			$records[] = $node;
-		}
-		$results["find"] = $records;	
-		return $results ;*/
+		return _apprenticeships_map_populate_nodes($db_result);
 	}
 
 	if(!empty($location)){
@@ -123,8 +269,6 @@ function apprenticeships_map_do_search(){
 
 			LEFT JOIN node ON field_data_field_aac_location.entity_id = node.nid
 			WHERE
-			#ACOS( SIN( RADIANS( field_aac_location_lat ) ) * SIN( RADIANS( :lat ) ) + COS( RADIANS( field_aac_location_lat ) ) * COS( RADIANS( :lat )) * COS( RADIANS( field_aac_location_lon ) - RADIANS( :lng )) ) * 6380 < 50
-			#AND 
 			deleted = 0
 			AND node.status = 1
 			ORDER BY distance";
@@ -134,7 +278,7 @@ function apprenticeships_map_do_search(){
 			":lng"=>$lng,
 		)) -> fetchAll();
 
-		return populateNodes($db_result);
+		return _apprenticeships_map_populate_nodes($db_result);
 	}
 
 	// query our search index, joined to our nodes table
@@ -154,9 +298,7 @@ function apprenticeships_map_do_search(){
 		$query->join('field_data_field_aac_location', 'coords', 'n.nid = coords.entity_id');
 		$query->condition('coords.entity_type', 'node');	
 		$query->orderBy("ACOS( SIN( RADIANS( field_aac_location_lat ) ) * SIN( RADIANS( $lat ) ) + COS( RADIANS( field_aac_location_lat ) ) * COS( RADIANS( $lat )) * COS( RADIANS( field_aac_location_lon ) - RADIANS( $lng )) ) * 6380 ","ASC");
-		//$query->where("ACOS( SIN( RADIANS( field_aac_location_lat ) ) * SIN( RADIANS( :lat ) ) + COS( RADIANS( field_aac_location_lat ) ) * COS( RADIANS( :lat )) * COS( RADIANS( field_aac_location_lon ) - RADIANS( :lng )) ) * 6380 < 50", array(":lat"=>$lat, ":lng"=>$lng));
 	}
-	// $query = $query->extend('PagerDefault');
 
 	_node_rankings($query);
 
