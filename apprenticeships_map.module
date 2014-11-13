@@ -61,17 +61,6 @@ function apprenticeships_map_block_view($delta = '') {
 				),
 			);
 			$block['content']['wrapper']['form-wrapper']['form-body'] = drupal_get_form('apprenticeships_map_aac_search');
-			$block['content']['wrapper']['footer'] = array(
-				'#type' => 'container',
-				'#attributes' => array(
-					'class' => 'region-search',
-				),
-			);
-			$block['content']['wrapper']['footer']['content'] = array(
-				'#prefix' => '<p>',
-				'#markup' => t('<a href="@url" title="Find my AAC by region">Find an AAC by region</a>', array('@url' => url('find-my-aac/by-region'))),
-				'#suffix' => '</p>',
-			);
 		break;
 
 		case 'apprenticeships_map_internal':
@@ -119,17 +108,6 @@ function apprenticeships_map_block_view($delta = '') {
 				'#suffix' => '</p>',
 			);
 			$block['content']['wrapper']['form-wrapper']['form-body'] = drupal_get_form('apprenticeships_map_aac_search', $location);
-			$block['content']['wrapper']['footer'] = array(
-				'#type' => 'container',
-				'#attributes' => array(
-					'class' => 'region-search',
-				),
-			);
-			$block['content']['wrapper']['footer']['content'] = array(
-				'#prefix' => '<p>',
-				'#markup' => t('<a href="@url" title="Find my AAC by region">Find an AAC by region.</a>', array('@url' => url('find-my-aac/by-region'))),
-				'#suffix' => '</p>',
-			);
 		break;
 	}
 	return $block;
@@ -177,19 +155,21 @@ function apprenticeships_map_aac_search($form_state, $location) {
 	);
 
 	$form['submit'] = array(
-		'#type' => 'button',
-		'#value' => 'Search',
+		'#prefix' => '<div class="search-button">',
+		'#markup' => '<input type="submit" value="Search" class="form-submit">',
+		'#suffix' => '</div>',
+	);
+
+	$form['region_search']['content'] = array(
+		'#prefix' => '<div class="region-search">',
+		'#markup' => t('<a class="button" href="@url" title="Find my AAC by region">Search by region</a>', array('@url' => url('find-my-aac/by-region'))),
+		'#suffix' => '</div>',
 	);
 
 	$form['#submit'] = array('apprenticeships_map_aac_search_submit');
 	$form['#attributes']['class'] = array('search-block-form');
 
 	return $form;
-}
-
-function apprenticeships_map_aac_search_submit($form, &$form_state) {
-	drupal_set_message(t('Form submitted!'));
-	// Load some behaviour here.
 }
 
 function apprenticeships_map_aac_search_validate($form, &$form_state) {
@@ -208,7 +188,6 @@ function apprenticeships_map_aac_search_validate($form, &$form_state) {
  */
 
 function apprenticeships_map_init(){
-	//drupal_add_js('js/apprenticeships_map.js', 'file');
 	if(request_path()=='map_do_search'){
 		set_time_limit(3600);
 		$search_result = apprenticeships_map_do_search();
@@ -222,6 +201,7 @@ function apprenticeships_map_init(){
  */
 
 function apprenticeships_map_do_search(){
+	echo 'Testing';
 	error_reporting(E_ALL);
 	ini_set('display_errors', TRUE);
 	ini_set('display_startup_errors', TRUE);
@@ -233,6 +213,8 @@ function apprenticeships_map_do_search(){
 	$keywords = ( $_REQUEST["term"] );
 	$location = urlencode( $_REQUEST["location"] );
 	$region = ( $_REQUEST["region"] );
+
+	dpm($keywords);
 
 	if(empty($location) && empty($keywords)){
 		$query = db_select('node', 'n');
@@ -269,6 +251,8 @@ function apprenticeships_map_do_search(){
 
 			LEFT JOIN node ON field_data_field_aac_location.entity_id = node.nid
 			WHERE
+			#ACOS( SIN( RADIANS( field_aac_location_lat ) ) * SIN( RADIANS( :lat ) ) + COS( RADIANS( field_aac_location_lat ) ) * COS( RADIANS( :lat )) * COS( RADIANS( field_aac_location_lon ) - RADIANS( :lng )) ) * 6380 < 50
+			#AND 
 			deleted = 0
 			AND node.status = 1
 			ORDER BY distance";

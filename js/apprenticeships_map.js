@@ -1,10 +1,10 @@
 (function () {
 
-var console = console || {
+/*var console = console || {
 	log:function(){},
 	warn:function(){},
 	error:function(){}
-};
+};*/
 
 var search_first_time = true;
 var map, pin_bounds;
@@ -12,8 +12,13 @@ var page = 0;
 var size = 20;
 var url = "/map_do_search";
 var typingTimer;
+
+
+
 jQuery(function(){
+	console.log('Started control function.');
 	function updateResult(location,term){
+		console.log(location, term);
 		var parameter = [];
 		if(location != undefined || location != "" ){
 			parameter.push("location="+location);
@@ -22,18 +27,19 @@ jQuery(function(){
 			parameter.push("term="+term);
 		}
 		var urlString = url+ "?" + parameter.join("&");
-		//console.log(urlString);
+		console.log(urlString);
 		load_markers(urlString);
 		google.maps.event.addListener(map, 'idle', count_markers);
 	}
-	
-	jQuery(".apprenticeships-map-aac-search").submit(function(){
+	jQuery("#apprenticeships-map-aac-search").submit(function(event){
+		console.log('Form submitted!');
+		//event.preventDefault();
 		if (jQuery('#map-overlay').hasClass('hidden')) {
 			jQuery('#map-overlay').removeClass('hidden');
 		}
 		clearTimeout(typingTimer);
 		typingTimer = setTimeout(function(){
-			updateResult(jQuery("#location").val(),jQuery("#term").val());   
+			updateResult(jQuery("#edit-location").val(),jQuery("#edit-keywords").val());   
 		}, 1000);
 
 	});	
@@ -58,6 +64,7 @@ var InfoWindow = new InfoBox({
 
 
 function initialize() {
+	console.log('Initialising.')
 	var mapOptions = {
 		center: new google.maps.LatLng(-28.62441593910887,138.50637499999993),
 		zoom: 4,
@@ -75,6 +82,7 @@ var markers = [];
 load_markers(url);
 
 function load_markers(url) {
+	console.log('Loading markers.')
 
 	clear_markers();
 	jQuery.getJSON(url, function(data) {
@@ -98,9 +106,10 @@ function load_markers(url) {
 	    		count_markers();
 	    		//turn throbber off
 	    		jQuery('#map-overlay').addClass('hidden');
+	    		console.log('Map ready.');
 	    	});
-	    	if (jQuery('#location').val() != '') {
-	    		var address = jQuery('#location').val();
+	    	if (jQuery('#edit-location').val() != '') {
+	    		var address = jQuery('#edit-location').val();
 	    		var geocoder = new google.maps.Geocoder();
 	    		var ne = new google.maps.LatLng(10.41, 153.38);
 	    		var sw = new google.maps.LatLng(43.38, 113.09);
@@ -139,9 +148,9 @@ function load_markers(url) {
 		                	auto_zoom();
 		                }
 
-		                // else {
-		                //	console.log(status);
-		                //} 
+		                else {
+		                	console.log(status);
+		                } 
 		              });
             	} else {
             		// Geocode for regular address
@@ -156,12 +165,12 @@ function load_markers(url) {
             				map.setZoom(9);
             				auto_zoom();
             				search_first_time = false;
-            				//console.log(address);
-            				//console.log(results);
+            				console.log(address);
+            				console.log(results);
             			} 
 
             			else {
-            				//console.log(status);
+            				console.log(status);
             			} 
             		});
             	}
@@ -195,6 +204,7 @@ function load_markers(url) {
 }
 
 function clear_markers() {
+	console.log('Clearing markers.')
 	if (typeof(markers) !== 'undefined') {
 		for (i in markers) {
 			markers[i].setMap(null);
@@ -267,6 +277,7 @@ var renderAddress = function(address){
 
 
 function setMarkers(map, project, i) {
+	console.log('Setting markers.')
 
 	var myLatLng = new google.maps.LatLng(project.field_aac_location.und[0].lat, project.field_aac_location.und[0].lon);
 	var marker = new google.maps.Marker({
@@ -301,6 +312,8 @@ function setMarkers(map, project, i) {
 }
 
 function count_markers() {
+	console.log('Counting markers.');
+	console.log('Marker length: ' + markers.length);
 	// Check number of markers when the map is idle.
 	var marker_count = 0;
 	var plural_string = '';
