@@ -20,11 +20,39 @@ function apprenticeships_map_block_info() {
  */
 
 function apprenticeships_map_block_view($delta = '') {
+
 	switch ($delta) {
 		case 'apprenticeships_map_home':
 			$location = 'home';
+
+			$apprenticeships_map_settings = array('basePath' => drupal_get_path('module', 'apprenticeships_map'));
+	
 			$block['subject'] = t('Find an Australian Apprenticeship Centre');
 			$block['title'] = t('Find an AAC');
+			$block['content']['#attached']['js'] = array(
+				array(
+					'data' => array(
+						'apprenticeships_map' => $apprenticeships_map_settings
+					),
+					'type' => 'setting',
+				),
+				'https://maps.googleapis.com/maps/api/js?client=gme-readingroom&sensor=true' => array(
+ 	    		'type' => 'external',
+				),
+				drupal_get_path('module', 'apprenticeships_map') . '/js/infobox_packed.js' => array(
+					'every page' => FALSE,
+				),
+				/*drupal_get_path('module', 'apprenticeships_map') . '/js/jquery.placeholder.min.js' => array(
+					'every page' => FALSE,
+				),*/
+				drupal_get_path('module', 'apprenticeships_map') . '/js/markerclusterer_compiled.js' => array(
+					'every page' => FALSE,
+				),
+				drupal_get_path('module', 'apprenticeships_map') . '/js/apprenticeships_map.js' => array(
+					'scope' => 'footer',
+					'every page' => FALSE,
+				),
+			);
 			$block['content']['wrapper'] = array(
 				'#type' => 'container',
 				'#attributes' => array(
@@ -121,26 +149,24 @@ function apprenticeships_map_aac_search($form_state, $location) {
 		'basePath' => $base_path,
 	);
 
-	if ($location) {
-		//Only add these files if the $location variable is present.
-		drupal_add_js(array('apprenticeships_map' => $apprenticeships_map_settings), 'setting');
-		drupal_add_js('https://maps.googleapis.com/maps/api/js?client=gme-readingroom&sensor=true', array(
-			'type' => 'external',
-			'weight' => 0,
-		));
-		drupal_add_js($base_path . '/js/infobox_packed.js', array(
-			'weight' => 5,
-		));
-		drupal_add_js($base_path . '/js/jquery.placeholder.min.js', array(
-			'weight' => 5,
-		));
-		drupal_add_js($base_path . '/js/markerclusterer_compiled.js', array(
-			'weight' => 5,
-		));
-		drupal_add_js($base_path . '/js/apprenticeships_map.js', array(
-			'scope' => 'footer',
-		));
-	}
+	/*//Only add these files if the $location variable is present.
+	drupal_add_js(array('apprenticeships_map' => $apprenticeships_map_settings), 'setting');
+	drupal_add_js('https://maps.googleapis.com/maps/api/js?client=gme-readingroom&sensor=true', array(
+		'type' => 'external',
+		'weight' => 0,
+	));
+	drupal_add_js($base_path . '/js/infobox_packed.js', array(
+		'weight' => 5,
+	));
+	drupal_add_js($base_path . '/js/jquery.placeholder.min.js', array(
+		'weight' => 5,
+	));
+	drupal_add_js($base_path . '/js/markerclusterer_compiled.js', array(
+		'weight' => 5,
+	));
+	drupal_add_js($base_path . '/js/apprenticeships_map.js', array(
+		'scope' => 'footer',
+	));*/
 
 	$form['location'] = array(
 		'#title' => t('Location'),
