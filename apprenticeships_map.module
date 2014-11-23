@@ -1,5 +1,41 @@
 <?php
 /**
+ * Implements hook_init()
+ * We use hook_init() to ensure that the JavaScript is only added on pages where the blocks actually appear.
+ * Pages where the block appears are input in administration form.
+ **/
+
+/**
+ * Implements hook_menu()
+ **/
+
+function apprenticeships_map_menu() {
+	$items = array();
+	$items['admin/config/user-interface/apprenticeships-map'] = array(
+	    'title' => t('Apprenticeships Map Settings'),
+	    'description' => 'Settings for the Apprenticeships Map.',
+	    'page callback' => 'drupal_get_form',
+	    'page arguments' => array('_apprenticeships_map_admin_form'),
+	    'access arguments' => array('access apprenticeships map settings form'),
+	    'type' => MENU_NORMAL_ITEM,
+	);
+	return $items;
+}
+
+/**
+ * Implements hook_permission()
+ **/
+
+function apprenticeships_map_permission() {
+ return array(
+    'access apprenticeships map settings form' => array(
+      'title' => t('Access Apprenticeships map settings'),
+      'description' => t('Allow users to access the settings for the Apprenticeships map(s).'),
+    ),
+  );
+}
+
+/**
  * Implements hook_block_info()
  */
 
@@ -21,6 +57,10 @@ function apprenticeships_map_block_info() {
 
 function apprenticeships_map_block_view($delta = '') {
 
+	// Get the URLs from the admin form.
+	$url_string = variable_get('apprenticeships_map_load_js');
+	$urls = explode(',', $url_string);
+
 	switch ($delta) {
 		case 'apprenticeships_map_home':
 			$location = 'home';
@@ -29,30 +69,30 @@ function apprenticeships_map_block_view($delta = '') {
 	
 			$block['subject'] = t('Find an Australian Apprenticeship Centre');
 			$block['title'] = t('Find an AAC');
-			$block['content']['#attached']['js'] = array(
-				array(
-					'data' => array(
-						'apprenticeships_map' => $apprenticeships_map_settings
+			if(current_path() == 'home') {
+				// Only attach the javascript if it is actually needed.
+				$block['content']['#attached']['js'] = array(
+					array(
+						'data' => array(
+							'apprenticeships_map' => $apprenticeships_map_settings
+						),
+						'type' => 'setting',
 					),
-					'type' => 'setting',
-				),
-				'https://maps.googleapis.com/maps/api/js?client=gme-readingroom&sensor=true' => array(
- 	    		'type' => 'external',
-				),
-				drupal_get_path('module', 'apprenticeships_map') . '/js/infobox_packed.js' => array(
-					'every page' => FALSE,
-				),
-				/*drupal_get_path('module', 'apprenticeships_map') . '/js/jquery.placeholder.min.js' => array(
-					'every page' => FALSE,
-				),*/
-				drupal_get_path('module', 'apprenticeships_map') . '/js/markerclusterer_compiled.js' => array(
-					'every page' => FALSE,
-				),
-				drupal_get_path('module', 'apprenticeships_map') . '/js/apprenticeships_map.js' => array(
-					'scope' => 'footer',
-					'every page' => FALSE,
-				),
-			);
+					'https://maps.googleapis.com/maps/api/js?client=gme-readingroom&sensor=true' => array(
+	 	    		'type' => 'external',
+					),
+					drupal_get_path('module', 'apprenticeships_map') . '/js/infobox_packed.js' => array(
+						'every page' => FALSE,
+					),
+					drupal_get_path('module', 'apprenticeships_map') . '/js/markerclusterer_compiled.js' => array(
+						'every page' => FALSE,
+					),
+					drupal_get_path('module', 'apprenticeships_map') . '/js/apprenticeships_map.js' => array(
+						'scope' => 'footer',
+						'every page' => FALSE,
+					),
+				);
+			}
 			$block['content']['wrapper'] = array(
 				'#type' => 'container',
 				'#attributes' => array(
@@ -92,9 +132,35 @@ function apprenticeships_map_block_view($delta = '') {
 		break;
 
 		case 'apprenticeships_map_internal':
+			
 			$location = 'internal';
 			$block['subject'] = t('Find an Australian Apprenticeship Centre');
-			$block['subject'] = t('Find an Australian Apprenticeship Centre');
+			foreach ($urls as $url) {
+				if($url == current_path()) {
+					// Only attach the javascript if it is actually needed.
+					$block['content']['#attached']['js'] = array(
+						array(
+							'data' => array(
+								'apprenticeships_map' => $apprenticeships_map_settings
+							),
+							'type' => 'setting',
+						),
+						'https://maps.googleapis.com/maps/api/js?client=gme-readingroom&sensor=true' => array(
+		 	    		'type' => 'external',
+						),
+						drupal_get_path('module', 'apprenticeships_map') . '/js/infobox_packed.js' => array(
+							'every page' => FALSE,
+						),
+						drupal_get_path('module', 'apprenticeships_map') . '/js/markerclusterer_compiled.js' => array(
+							'every page' => FALSE,
+						),
+						drupal_get_path('module', 'apprenticeships_map') . '/js/apprenticeships_map.js' => array(
+							'scope' => 'footer',
+							'every page' => FALSE,
+						),
+					);
+				}
+			}			
 			$block['content']['wrapper'] = array(
 				'#type' => 'container',
 				'#attributes' => array(
@@ -148,25 +214,6 @@ function apprenticeships_map_aac_search($form_state, $location) {
 	$apprenticeships_map_settings = array(
 		'basePath' => $base_path,
 	);
-
-	/*//Only add these files if the $location variable is present.
-	drupal_add_js(array('apprenticeships_map' => $apprenticeships_map_settings), 'setting');
-	drupal_add_js('https://maps.googleapis.com/maps/api/js?client=gme-readingroom&sensor=true', array(
-		'type' => 'external',
-		'weight' => 0,
-	));
-	drupal_add_js($base_path . '/js/infobox_packed.js', array(
-		'weight' => 5,
-	));
-	drupal_add_js($base_path . '/js/jquery.placeholder.min.js', array(
-		'weight' => 5,
-	));
-	drupal_add_js($base_path . '/js/markerclusterer_compiled.js', array(
-		'weight' => 5,
-	));
-	drupal_add_js($base_path . '/js/apprenticeships_map.js', array(
-		'scope' => 'footer',
-	));*/
 
 	$form['location'] = array(
 		'#title' => t('Location'),
@@ -459,4 +506,18 @@ function _apprenticeships_map_populate_nodes($db_result){
 
 	$results["find"] = $records;	
 	return $results ;
+}
+
+function _apprenticeships_map_admin_form() {
+  $form = array();
+
+  $form['apprenticeships_map_load_js'] = array(
+    '#type' => 'textarea',
+    '#title' => 'Pages to load JavaScript',
+    '#default_value' => variable_get('apprenticeships_map_load_js',''),
+    '#description' => t('Enter the relative paths of the pages you would like the map blocks to appear, separated by a comma. This will ensure that the javascript is only loaded on those pages. Note that scripts will always load on the home page.'),
+    '#required' => TRUE,
+  );
+
+  return system_settings_form($form);
 }
