@@ -1,9 +1,4 @@
 <?php
-/**
- * Implements hook_init()
- * We use hook_init() to ensure that the JavaScript is only added on pages where the blocks actually appear.
- * Pages where the block appears are input in administration form.
- **/
 
 /**
  * Implements hook_menu()
@@ -262,120 +257,27 @@ function apprenticeships_map_aac_search_validate($form, &$form_state) {
 	}
 }
 
-// Not sure if all this is needed.
-
-/**
- * Implements hook_views_api()
- */
- 
-function apprenticeships_map_views_api() {
-	return array(
-		'api' => 3.0,
-		'path' => drupal_get_path('module', 'apprenticeships_map'),
-	);
-}
-
-/**
- * Implements hook_views_default_views()
- *
- * This code was created using Views' 'Export' feature.
- *
- */
-function apprenticeships_map_views_default_views() {
-	$view = new view();
-	$view->name = 'australian_apprenticeship_centres';
-	$view->description = 'This view is used to display lists of Australian Apprenticeships Centres.';
-	$view->tag = 'default';
-	$view->base_table = 'node';
-	$view->human_name = 'Australian Apprenticeship Centres';
-	$view->core = 7;
-	$view->api_version = '3.0';
-	$view->disabled = FALSE; /* Edit this to true to make a default view disabled initially */
-
-	/* Display: Master */
-	$handler = $view->new_display('default', 'Master', 'default');
-	$handler->display->display_options['title'] = 'Australian Apprenticeship Centres';
-	$handler->display->display_options['use_more_always'] = FALSE;
-	$handler->display->display_options['access']['type'] = 'perm';
-	$handler->display->display_options['cache']['type'] = 'none';
-	$handler->display->display_options['query']['type'] = 'views_query';
-	$handler->display->display_options['exposed_form']['type'] = 'basic';
-	$handler->display->display_options['pager']['type'] = 'none';
-	$handler->display->display_options['style_plugin'] = 'default';
-	$handler->display->display_options['row_plugin'] = 'fields';
-	/* Field: Content: Title */
-	$handler->display->display_options['fields']['title']['id'] = 'title';
-	$handler->display->display_options['fields']['title']['table'] = 'node';
-	$handler->display->display_options['fields']['title']['field'] = 'title';
-	$handler->display->display_options['fields']['title']['label'] = '';
-	$handler->display->display_options['fields']['title']['alter']['word_boundary'] = FALSE;
-	$handler->display->display_options['fields']['title']['alter']['ellipsis'] = FALSE;
-	/* Field: Content: Address */
-	$handler->display->display_options['fields']['field_aac_address']['id'] = 'field_aac_address';
-	$handler->display->display_options['fields']['field_aac_address']['table'] = 'field_data_field_aac_address';
-	$handler->display->display_options['fields']['field_aac_address']['field'] = 'field_aac_address';
-	$handler->display->display_options['fields']['field_aac_address']['label'] = '';
-	$handler->display->display_options['fields']['field_aac_address']['element_label_colon'] = FALSE;
-	$handler->display->display_options['fields']['field_aac_address']['element_default_classes'] = FALSE;
-	$handler->display->display_options['fields']['field_aac_address']['click_sort_column'] = 'country';
-	$handler->display->display_options['fields']['field_aac_address']['settings'] = array(
-	  'use_widget_handlers' => 1,
-	  'format_handlers' => array(
-	    'address' => 'address',
-	  ),
-	);
-	/* Field: Content: Address - Country */
-	$handler->display->display_options['fields']['field_aac_address_country']['id'] = 'field_aac_address_country';
-	$handler->display->display_options['fields']['field_aac_address_country']['table'] = 'field_data_field_aac_address';
-	$handler->display->display_options['fields']['field_aac_address_country']['field'] = 'field_aac_address_country';
-	$handler->display->display_options['fields']['field_aac_address_country']['label'] = '';
-	$handler->display->display_options['fields']['field_aac_address_country']['element_label_colon'] = FALSE;
-	$handler->display->display_options['fields']['field_aac_address_country']['element_default_classes'] = FALSE;
-	$handler->display->display_options['fields']['field_aac_address_country']['display_name'] = 0;
-	/* Field: Content: geofield */
-	$handler->display->display_options['fields']['field_geofield']['id'] = 'field_geofield';
-	$handler->display->display_options['fields']['field_geofield']['table'] = 'field_data_field_geofield';
-	$handler->display->display_options['fields']['field_geofield']['field'] = 'field_geofield';
-	$handler->display->display_options['fields']['field_geofield']['label'] = '';
-	$handler->display->display_options['fields']['field_geofield']['element_label_colon'] = FALSE;
-	$handler->display->display_options['fields']['field_geofield']['element_default_classes'] = FALSE;
-	$handler->display->display_options['fields']['field_geofield']['click_sort_column'] = 'geom';
-	$handler->display->display_options['fields']['field_geofield']['settings'] = array(
-	  'data' => 'full',
-	);
-	/* Filter criterion: Content: Published */
-	$handler->display->display_options['filters']['status']['id'] = 'status';
-	$handler->display->display_options['filters']['status']['table'] = 'node';
-	$handler->display->display_options['filters']['status']['field'] = 'status';
-	$handler->display->display_options['filters']['status']['value'] = 1;
-	$handler->display->display_options['filters']['status']['group'] = 1;
-	$handler->display->display_options['filters']['status']['expose']['operator'] = FALSE;
-	/* Filter criterion: Content: Type */
-	$handler->display->display_options['filters']['type']['id'] = 'type';
-	$handler->display->display_options['filters']['type']['table'] = 'node';
-	$handler->display->display_options['filters']['type']['field'] = 'type';
-	$handler->display->display_options['filters']['type']['value'] = array(
-	  'australian_apprenticeship_centre' => 'australian_apprenticeship_centre',
-	);
-
-	/* Display: Map Data */
-	$handler = $view->new_display('block', 'Map Data', 'block');
-	$handler->display->display_options['display_description'] = 'This display shows the title, address and geofield for mapping purposes.';
-
-	$views[$view->name] = $view;
-	return $views;
-}
-
 
 /**
  * Implements hook_init()
  */
 
 function apprenticeships_map_init(){
+	// This is the controller function.
+
+	// Before Drupal loads, check the URL. If it is 'map_do_search', then initiate the search functionality.
 	if(request_path()=='map_do_search'){
+
+		// Set a minute time limit.
 		set_time_limit(3600);
+
+		// Get a search result object.
 		$search_result = apprenticeships_map_do_search();
-		echo json_encode($search_result['find']);
+
+		// Echo the $search_result object as json so it can be used by the JavaScript later on.
+		echo json_encode($search_result);
+
+		// End everything now so the theme is never loaded.
 		exit;
 	}
 }
@@ -385,93 +287,133 @@ function apprenticeships_map_init(){
  */
 
 function apprenticeships_map_do_search(){
-	error_reporting(E_ALL);
-	ini_set('display_errors', TRUE);
-	ini_set('display_startup_errors', TRUE);
 
-	$results = array();
+	//Get the keywords from the URL. These are passed in by the search page. Make sure that the request parameters are there. If they aren't, set them to empty (otherwise errors ensue).
+	$keywords = isset($_REQUEST["term"]) ? $_REQUEST["term"] : '';
+	$location = isset($_REQUEST["location"]) ? urlencode( $_REQUEST["location"] ) : '';
 
-	//Using google api parse coordinate
-	$keywords = ( $_REQUEST["term"] );
-	$location = urlencode( $_REQUEST["location"] );
-	$region = ( $_REQUEST["region"] );
+	// This is a stub for later implementation of a better region search.
+	//$region = isset($_REQUEST["region"]) ? $_REQUEST["region"] : '';
 
+	// This 'if' block is the 'default' position - no search has been run so it returns all objects.
 	if(empty($location) && empty($keywords)){
-		$query = db_select('node', 'n');
+
+		// Set up a cache to speed things up.
+		if (variable_get('apprenticeships_map_cache') === 1) {
+
+			//Create a cache object
+			$cid = 'apprenticeships_map:aac_nodes_all';
+
+			// Check if there is anything in the cache.
+			if ($cached = cache_get($cid)) {
+
+				// If there is data there, return it instead of running the query.
+				return _apprenticeships_map_populate_nodes($cached->data);
+			}
+		}
+		// Set up the SQL query text.
+		$sql = "SELECT nid FROM {node} WHERE type = 'australian_apprenticeship_centre' AND status = 1 ORDER BY title";
+
+		// Set the $result variable to the results of the db_query function, using the $sql string.
+		$results = db_query($sql)->fetchAll();
+		
+		// If the cache is being used, set the cache to the new data.
+		if (variable_get('apprenticeships_map_cache') === 1) {
+			cache_set($cid, $results, 'cache', strtotime('+1 day'));
+		}
+
+		// Return the $results array, passing it through the _apprenticeships_map_populate_nodes function.
+		return _apprenticeships_map_populate_nodes($results);
+	}
+
+	// This 'if' block is run if only 'location' is filled in.
+	if(!empty($location) && empty($keywords)) {
+
+		// Get the lat and long from the geocode function.
+
+		$geo = _apprenticeships_map_geocode($location);
+		
+		// Set up the SQL query text. This query uses the Haversine formula to calculate the distance between the geodata returned from Google and the geodata of the map object.
+		// Note that this data can't be cached as it is being changed for each search. The current query is limited to 50 - this could be changed through a form.
+		$sql = "SELECT node.nid, node.status, entity_id, deleted, field_data_field_aac_location.field_aac_location_lat, field_data_field_aac_location.field_aac_location_lon,
+				ACOS( SIN( RADIANS( field_aac_location_lat ) ) * SIN( RADIANS( :lat ) ) + COS( RADIANS( field_aac_location_lat ) ) * COS( RADIANS( :lat )) * COS( RADIANS( field_aac_location_lon ) - RADIANS( :lng )) ) * 6380 AS distance 
+				FROM field_data_field_aac_location
+				LEFT JOIN node ON field_data_field_aac_location.entity_id = node.nid WHERE deleted = 0 and node.status = 1 ORDER BY distance";
+
+		$results = db_query($sql, array(
+			":lat" => $geo['lat'],
+			":lng" => $geo['lng'],
+		)) -> fetchAll();
+
+		// Return the $results array, passing it through the _apprenticeships_map_populate_nodes function.
+		return _apprenticeships_map_populate_nodes($results);
+	}
+	
+	// This 'if' block is run if 'keywords' is filled in. This runs a search against the search server, but doesn't require a distance calculation as there's no 'origin'.
+	if (!empty($keywords)) {
+
+		// Query the search index. This uses db_select because ity is querying the search index.
+		$query = db_select('search_index', 'i', array(
+			'target' => 'slave',
+		))->extend('SearchQuery');
+		$query->join('node', 'n', 'n.nid = i.sid');
+	
+		// Plug in the search term from $keywords.
+		$query->searchExpression(preg_replace("/[^a-zA-Z0-9 ]/s", "", $keywords), 'node');
+	
 		$query->fields('n', array('nid'))->distinct();
 		$query->condition('n.status', 1);
 		$query->addTag('node_access');
 		$query->condition('n.type', 'australian_apprenticeship_centre');
-		$query->orderBy('n.title');
-		$db_result = $query->execute()->fetchAll();
-		return _apprenticeships_map_populate_nodes($db_result);
-	}
-
-	if(!empty($location)){
-		$url = "http://maps.googleapis.com/maps/api/geocode/json?address=".$location.",+AU&sensor=false";
-		$geocode_object = json_decode( file_get_contents($url) );
-
-		if(count($geocode_object->results)>0 && isset($geocode_object->results[0]->geometry->location) ){
-			$lat = $geocode_object->results[0]->geometry->location->lat;
-			$lng = $geocode_object->results[0]->geometry->location->lng;		
-		}	
-	}
 	
-	if(empty($keywords)){
-		$sql  = "SELECT
-			node.*,
-			entity_id,
-			bundle,
-			deleted,
-			field_data_field_aac_location.field_aac_location_lat ,
-			field_data_field_aac_location.field_aac_location_lon ,
-			ACOS( SIN( RADIANS( field_aac_location_lat ) ) * SIN( RADIANS( :lat ) ) + COS( RADIANS( field_aac_location_lat ) ) * COS( RADIANS( :lat )) * COS( RADIANS( field_aac_location_lon ) - RADIANS( :lng )) ) * 6380 AS distance
+		// Finally, if the keywords AND location are filled in, we add some stuff to the query to get some distance info.
+		if(!empty($location)){
 
-			FROM field_data_field_aac_location 
+			// Get the lat and long from the geocode function.
+			$geo = _apprenticeships_map_geocode($location);
+			$lat = $geo['lat'];
+			$lng = $geo['lng'];
 
-			LEFT JOIN node ON field_data_field_aac_location.entity_id = node.nid
-			WHERE
-			#ACOS( SIN( RADIANS( field_aac_location_lat ) ) * SIN( RADIANS( :lat ) ) + COS( RADIANS( field_aac_location_lat ) ) * COS( RADIANS( :lat )) * COS( RADIANS( field_aac_location_lon ) - RADIANS( :lng )) ) * 6380 < 50
-			#AND 
-			deleted = 0
-			AND node.status = 1
-			ORDER BY distance";
+			$query->join('field_data_field_aac_location', 'coords', 'n.nid = coords.entity_id');
+			$query->condition('coords.entity_type', 'node');	
+			$query->orderBy("ACOS( SIN( RADIANS( field_aac_location_lat ) ) * SIN( RADIANS( $lat ) ) + COS( RADIANS( field_aac_location_lat ) ) * COS( RADIANS( $lat )) * COS( RADIANS( field_aac_location_lon ) - RADIANS( $lng )) ) * 6380 ","ASC");
+		}
 
-		$db_result = db_query($sql, array(
-			":lat" => $lat,
-			":lng"=>$lng,
-		)) -> fetchAll();
+		// Implement _node_rankings to order the search.
+		_node_rankings($query);
 
-		return _apprenticeships_map_populate_nodes($db_result);
+		// Execute the query.
+		$results = $query->execute()->fetchAll();
+
+		// Send the $results variable back through the _apprenticeships_map_populate_nodes function.
+		return _apprenticeships_map_populate_nodes($results);
 	}
+}
 
-	// query our search index, joined to our nodes table
-	$query = db_select('search_index', 'i', array(
-		'target' => 'slave',
-		))->extend('SearchQuery');
-	$query->join('node', 'n', 'n.nid = i.sid');
-	// search term
-	$query->searchExpression(preg_replace("/[^a-zA-Z0-9 ]/s", "", $keywords), 'node');
-	
-	$query->fields('n', array('nid'))->distinct();
-	$query->condition('n.status', 1);
-	$query->addTag('node_access');
-	$query->condition('n.type', 'australian_apprenticeship_centre');
+function _apprenticeships_map_geocode($loc) {
+	// Create the geocoding URL using the location as the key.
+	$url = "http://maps.googleapis.com/maps/api/geocode/json?address=".$loc.",+AU&sensor=false";
 
-	if(!empty($location)){
-		$query->join('field_data_field_aac_location', 'coords', 'n.nid = coords.entity_id');
-		$query->condition('coords.entity_type', 'node');	
-		$query->orderBy("ACOS( SIN( RADIANS( field_aac_location_lat ) ) * SIN( RADIANS( $lat ) ) + COS( RADIANS( field_aac_location_lat ) ) * COS( RADIANS( $lat )) * COS( RADIANS( field_aac_location_lon ) - RADIANS( $lng )) ) * 6380 ","ASC");
+	// Create the $geocode_object variable from the decoded JSON object pulled from $url.
+	$geocode_object = json_decode( file_get_contents($url) );
+
+	// Create a $go array to hold the lat and long.
+	$geo = array();
+	// Validate the data return from the object.
+	if(count($geocode_object->results) > 0 && isset($geocode_object->results[0]->geometry->location)) {
+
+		// Set up a latitude object ($lat)
+		$geo['lat'] = $geocode_object->results[0]->geometry->location->lat;
+
+		// Set up a longitude object ($lng).
+		$geo['lng'] = $geocode_object->results[0]->geometry->location->lng;		
 	}
-
-	_node_rankings($query);
-
-	$db_result = $query->execute()->fetchAll();
-
-	return _apprenticeships_map_populate_nodes($db_result);
+	return $geo;
 }
 
 function _apprenticeships_map_administrative_area($abbrv){
+	// This function converts the states from the database on the $node object into fully-qualified names which Google requires.
+
 	$administrative_area = array(
 		"ACT" => "Australian Capital Territory",
 		"NSW" => "New South Wales",
@@ -486,38 +428,87 @@ function _apprenticeships_map_administrative_area($abbrv){
 	return $administrative_area[$abbrv];
 }
 
-function _apprenticeships_map_populate_nodes($db_result){
-	$records= array();
-	foreach ($db_result as $record) {
-		$node_alias = drupal_get_path_alias('node/'.$record->nid);
-		$node = node_load( $record->nid );
-		$node->node_alias = $node_alias;
-		$type_tid = $node->field_aac_type['und'][0]['tid'];
-		if(!empty($type_tid)){
-			$node->type = taxonomy_term_load($type_tid)->name;
+function pp($var) {
+	echo "<pre>";
+	print_r($var);
+	echo "</pre><br /><br />";
+}
+
+function _apprenticeships_map_populate_nodes($results){
+	// This function loads all the nodes by the nid passed through the $results array.
+
+	$map_objects = array();
+
+	foreach ($results as $result) {
+
+		// Create a map object to hold only the relevant data.
+		$map_object = array();
+
+		// Build the alias of each node.
+		$alias = drupal_get_path_alias('node/'.$result->nid);
+
+		// Load each node using the nid. $node is now the full $node object.
+		$node = node_load($result->nid);
+
+		// Add only the data we need to each map object. This also makes the other code a lot less complex.
+		$map_object['nid'] = $node->nid;
+		$map_object['alias'] = $alias;
+		$map_object['title'] = $node->title;
+		$map_object['street'] = $node->field_aac_address['und'][0]['thoroughfare'];
+		$map_object['premise'] = $node->field_aac_address['und'][0]['premise'];
+		$map_object['city'] = $node->field_aac_address['und'][0]['locality'];
+		$map_object['state'] = $node->field_aac_address['und'][0]['administrative_area'];
+		$map_object['postcode'] = $node->field_aac_address['und'][0]['postal_code'];
+		$map_object['type'] = $node->field_aac_type;
+
+		// If this is a distance search, add the distance string to the map object.
+		if (isset($result->distance)) {
+			$map_object['distance'] = $result->distance;
 		}
-		if(!empty($node->field_aac_address['und'][0]['administrative_area'])){
-			$node->field_aac_address['und'][0]['administrative_area'] = _apprenticeships_map_administrative_area($node->field_aac_address['und'][0]['administrative_area']);	
-			$node->field_aac_address['und'][0]['country'] = "Australia";
+		// Make sure there is geo data attached to the node. If not, then we'll throw this object away.
+		if (isset($node->field_aac_location['und'][0])) {
+			$map_object['geo'] = $node->field_aac_location['und'][0];
 		}
-		
-		$records[] = $node;
+		// As long as the AAC type field isn't empty, turn it from the vid into the actual name.
+		if(!empty($map_object['type'])){
+			$map_object['type'] = taxonomy_term_load($map_object['type'])->name;
+		}
+		// As long as the administrative area (state) isn't empty, convert it from the abbreviation to the name.
+		if(!empty($map_object['state'])){
+			$map_object['state'] = _apprenticeships_map_administrative_area($map_object['state']);	
+			// Make sure the country is set as 'Australia'.
+			$map_object['country'] = "Australia";
+		}
+
+		// If the map object has geo data, add it to the $map_objects array, if not, it gets destroyed.
+		if (isset($map_object['geo'])) {
+			$map_objects[] = $map_object;
+		}
 	}
 
-	$results["find"] = $records;	
-	return $results ;
+	// Replace the contents of the $results array (which is just nids) with the contents of the $map_objects array.
+	$results = $map_objects;
+
+	// Send the results back to the controller function to be displayed as JSON.
+	return $results;
 }
 
 function _apprenticeships_map_admin_form() {
-  $form = array();
+	$form = array();
 
-  $form['apprenticeships_map_load_js'] = array(
-    '#type' => 'textarea',
-    '#title' => 'Pages to load JavaScript',
-    '#default_value' => variable_get('apprenticeships_map_load_js',''),
-    '#description' => t('Enter the relative paths of the pages you would like the map blocks to appear, separated by a comma. This will ensure that the javascript is only loaded on those pages. Note that scripts will always load on the home page.'),
-    '#required' => TRUE,
-  );
-
+	$form['apprenticeships_map_load_js'] = array(
+		'#type' => 'textarea',
+		'#title' => 'Pages to load JavaScript',
+		'#default_value' => variable_get('apprenticeships_map_load_js',''),
+		'#description' => t('Enter the relative paths of the pages you would like the map blocks to appear, separated by a comma. This will ensure that the javascript is only loaded on those pages. Note that scripts will always load on the home page.'),
+		'#required' => TRUE,
+	);
+	$form['apprenticeships_map_cache'] = array(
+		'#type' => 'checkbox',
+		'#title' => 'Cache database queries?',
+		'#default_value' => variable_get('apprenticeships_map_cache',''),
+		'#description' => t('Caching the database results can speed things up substantially.'),
+		'#required' => TRUE,
+	);
   return system_settings_form($form);
 }
