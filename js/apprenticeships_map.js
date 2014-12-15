@@ -26,23 +26,23 @@
 
 jQuery(function ($) {
 	// Initialise some global variables.
-	var firstSearch = true, map, pinBounds, cluster, url = "/map_do_search", markers = [], infoWindow;
+	var firstSearch = true, map, pinBounds, cluster, url = "/map_do_search", markers = [], infoWindow, mapCenter, noCount = false;
 
 /**
  * Initialise function.
  */
 
 	var initialize = function() {
-		console.log("initialize");
 		// Create a map options variable.
 		var mapOptions = {
 			center: new google.maps.LatLng(
-				-28.62441593910887, 
-				138.50637499999993
+				-27.226655302429965, 
+				134.63918749999996
 			),
 			zoom: 3,
 			mapTypeId: google.maps.MapTypeId.ROADMAP,
-			streetViewControl: false
+			streetViewControl: false,
+			disableDefaultUI: true,
 		};
 
 		// Initialise the InfoBox object.
@@ -65,11 +65,21 @@ jQuery(function ($) {
 		// Initialise the map with the mapOptions variable.
 		map = new google.maps.Map(document.getElementById("map-canvas-home"), mapOptions);
 
+		// Ensure that the initial map center is filled.
+		mapCenter = map.getCenter();
+
+		google.maps.event.addDomListener(window, 'resize', function() {
+			map.setCenter(mapCenter)
+		});
+
 		// Now that the map exists, create the cluster layer.
 		cluster = new MarkerClusterer(map);
 
 		// Load the markers
-		loadMarkers();
+		loadMarkers(url);
+
+		// Add form functionality.
+		formSubmit();
 
 		// Count the markers once the map is idle. This function will always work.
 		google.maps.event.addListener(map, 'idle', function() {
@@ -83,8 +93,6 @@ jQuery(function ($) {
  */
 
 	var updateResult = function(location,term) {
-				console.log("updateResult");
-
 		var parameter = [];
 		if (location != undefined || location != "" ) {
 			parameter.push("location=" + location);
@@ -102,16 +110,13 @@ jQuery(function ($) {
  */
 
 	var formSubmit = function() {
-		console.log("formSubmit");
 		$("#apprenticeships-map-aac-search").submit(function(event) {
 			event.preventDefault();
 			if ($('#map-overlay').hasClass('hidden')) {
 				$('#map-overlay').removeClass('hidden');
 			}
-			clearTimeout(typingTimer);
-			typingTimer = setTimeout(function() {
-				updateResult($("#edit-location").val(),$("#edit-keywords").val());   
-			}, 1000);
+			updateResult($("#edit-location").val(), $("#edit-keywords").val());
+			geocodeSearch();  
 		});
 	};
 
@@ -120,7 +125,6 @@ jQuery(function ($) {
  */
 
 	var postcodeTest = function(address) {
-		console.log("postcodeTest");
 		// Test whether the address 
 		var postcodeTest = /^(0[289][0-9]{2})|([1345689][0-9]{3})|(2[0-8][0-9]{2})|(290[0-9])|(291[0-4])|(7[0-4][0-9]{2})|(7[8-9][0-9]{2})$/;
 		if (postcodeTest.test(address)) {
@@ -153,13 +157,13 @@ jQuery(function ($) {
  * Load the markers.
  */
 
- 	var loadMarkers = function() {
- 		console.log("loadMarkers");
-	 	//clearMarkers();
+ 	var loadMarkers = function(url) {
+
+ 		// Clear out the markers
+	 	clearMarkers();
 
 	 	// Get the data from the JSON-encoded URL.
 	 	$.getJSON(url, function(data) {
-
 	 		// This is the 'success' function for the $.getJSON function.
 	 		pinBounds = new google.maps.LatLngBounds();
 
@@ -169,14 +173,16 @@ jQuery(function ($) {
 	 			if (item.geo !==  undefined) {
 	 				if (item.geo.lat.length !== null && item.geo.lon.length !== null) {
 	 					// Send each 'data' item off to the setMarkers function.
-	 					markers.push(setMarkers(item));	
+	 					markers.push(setMarkers(item));
 	 				}
 	 			}
 	 		});
+	 		// Count the markers.
+	 		countMarkers();
 
 	 		// If the data doesn't exist, fail out.
 	 		if (data.length === 0) {
-	 			alert('No Australian Apprenticeship Centres were found');	
+	 			countMarkers('No Australian Apprenticeship Centres were found. Try altering your search.', 'warning');	
 	 			return;
 	 		}
 	 	});
@@ -192,7 +198,6 @@ jQuery(function ($) {
 			position: myLatLng,
 			map: map,
 			title: item.title,
-			icon: Drupal.settings.apprenticeships_map.basePath + '/img/16_circle_red.png'
 		});
 
 		pinBounds.extend(myLatLng);
@@ -222,7 +227,6 @@ jQuery(function ($) {
  */
 
 	var geocodeSearch = function() {
-		console.log("geocodeSearch");
  		// Check whether the form field has a value. If it does, then geocode the value.
  		if ($('#edit-location').val() != '') {
  			var address = $('#edit-location').val();
@@ -246,14 +250,11 @@ jQuery(function ($) {
 					if (status == google.maps.GeocoderStatus.OK) {
 						map.fitBounds(results[0].geometry.viewport);
 						map.setCenter(results[0].geometry.location);
-					if (!(firstSearch)) {
-						markers[markers.length-1].setMap(null);
-					}
-					place_user_marker(results);
-					map.setZoom(9); //Set the map to a more usable zoom
-					auto_zoom();
+						mapCenter = map.getCenter();
+						map.setZoom(9); //Set the map to a more usable zoom
+						autoZoom();
 					} else { 
-						//console.log(status);
+						countMarkers('An error has occurred with the geocoding service. Please try again.', 'warning');
 					}
 				});
 			} else {
@@ -270,14 +271,13 @@ jQuery(function ($) {
 					if (status == google.maps.GeocoderStatus.OK) {
 						map.fitBounds(results[0].geometry.viewport);
 						map.setCenter(results[0].geometry.location);
-						if (!(firstSearch)) {
-							markers[markers.length - 1].setMap(null);
-						}
-						place_user_marker(results);
+						mapCenter = map.getCenter();
 						map.setZoom(9);
-						auto_zoom();
+						autoZoom();
 						firstSearch = false;
-					} 
+					} else {
+						countMarkers('An error has occurred with the geocoding service. Please try again.', 'warning');
+					}
 				});
 			}
 
@@ -295,7 +295,6 @@ jQuery(function ($) {
  */
 
 	var autoZoom = function() {
-		console.log("autoZoom");
 		while (countMarkers() == 0) {
 			var currentZoom = map.getZoom()
 			if (currentZoom == 5) {
@@ -310,12 +309,11 @@ jQuery(function ($) {
  */
 
 	var userMarker = function(results) {
-		console.log("userMarker");
 		var searchMarker = []; //Clear out the searchMarker array.
 		var searchCenter = new google.maps.Marker({
 			position: results[0].geometry.location,
 			map: map,
-			title: address,
+			title: results[0].address_components.formatted_address,
 			clickable: false,
 			icon: Drupal.settings.apprenticeships_map.basePath + '/img/marker-gold.png',
 		});
@@ -327,13 +325,13 @@ jQuery(function ($) {
  */
 
 	var clearMarkers = function() {
-		console.log("clearMarkers");
 		if (typeof(markers) !== 'undefined') {
 			for (i in markers) {
 				markers[i].setMap(null);
 			}
 		}
 		markers = [];
+		cluster.clearMarkers();
 	};
 
 /**
@@ -343,7 +341,6 @@ jQuery(function ($) {
 * @return {object} jQuery HTML Object
 */
 	var renderTitle = function(title, url){
-		console.log("renderTitle");
 		var wrapper = $('<div class="map-title"></div>'),
 		header = $('<h3></h3>'),
 		link = $('<a href=""></a>');
@@ -363,7 +360,6 @@ jQuery(function ($) {
 * @return {object} jQuery HTML Object
 */
 	var renderAddress = function (item) {
-		console.log("renderAddress");
 		var html = $('<div class="maps-address"></div>'),
 		content = $('<div class="maps-content"></div>'),
 		row = $('<div class="maps-item"></div>'),
@@ -400,72 +396,29 @@ jQuery(function ($) {
 		return html;
 	};
 
-
-
-/**
- * Toggles the overlay.
- * @TODO this can probably be removed.
- */
-
-	var showFeedback = function (){
-		console.log("showFeedback");
-		if (jQuery('#map-feedback').hasClass('hidden')) {
-			jQuery('#map-feedback').removeClass('hidden');
-		}
-	};
-
 /**
  * This function counts the markers currently visible on the map window.
  */
 
-	var countMarkers = function() {
-		console.log(markers.length);
-		console.log("countMarkers");
-		var markerCount = 0, pluralString = '';
-		$.each(markers, function(i, marker) {
-			if( bounds.contains(marker.getPosition()) ) {
-				markerCount++;
-			}			
-		});
-		if (markerCount != 1) {
-			pluralString = 's';
-		}
-		$('#map-feedback').html('<p>Showing <strong>' + markerCount + '</strong> AAC' + pluralString + '</p>').removeClass('hidden');
+	var countMarkers = function(message, type) {
+			var markerCount = 0, pluralString = '', bounds = map.getBounds();
+			$.each(markers, function(i, marker) {
+				if(bounds.contains(marker.getPosition())) {
+					markerCount++;
+				}			
+			});
+			if (markerCount !== 1) {
+				pluralString = 's';
+			}
+			if (markerCount !== 0) {
+				$('#map-feedback').html('<p>Showing <strong>' + markerCount + '</strong> AAC' + pluralString + '</p>').removeClass('hidden').show();
+			} else if (typeof message !== 'undefined') {
+				$('#map-feedback').html('<p>' + message + '</p>').removeClass().addClass(type).show();
+			} else {
+				$('#map-feedback').hide();
+			}
 	};
 
 	// Core function to initialise the map on DOM load and kick everything off.
 	google.maps.event.addDomListener(window, 'load', initialize);
 });
-
-
-
-
-
-
-
-
-
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-	
-
-	
-
-
-
-
-
-
-
