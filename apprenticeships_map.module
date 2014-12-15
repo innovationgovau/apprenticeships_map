@@ -60,8 +60,11 @@ function apprenticeships_map_block_view($delta = '') {
 		case 'apprenticeships_map_home':
 			$location = 'home';
 
-			$apprenticeships_map_settings = array('basePath' => drupal_get_path('module', 'apprenticeships_map'));
-	
+			$apprenticeships_map_settings = array(
+				'basePath' => drupal_get_path('module', 'apprenticeships_map'),
+				'mapID' => 'map-canvas-home',
+			);
+
 			$block['subject'] = t('Find an Australian Apprenticeship Centre');
 			$block['title'] = t('Find an AAC');
 			if(current_path() == 'home') {
@@ -96,7 +99,7 @@ function apprenticeships_map_block_view($delta = '') {
 			);
 			$block['content']['wrapper']['body'] = array(
 				'#prefix' => '<p>',
-				'#markup' => t('<a href="@url" title="Find an Australian Apprenticeship Centre near you">Find an Australian Apprenticeships Centre</a>', array('@url' => url('find-my-aac/full-list'))),
+				'#markup' => t('<a href="@url" title="Find an Australian Apprenticeship Centre near you">Find an Australian Apprenticeships Centre</a>', array('@url' => url('find-my-aac/map'))),
 				'#suffix' => '</p>',
 			);
 			$block['content']['wrapper']['map-canvas'] = array(
@@ -117,6 +120,12 @@ function apprenticeships_map_block_view($delta = '') {
 					'id' => 'map-overlay',
 				),
 			);
+			$block['content']['wrapper']['map-message'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'id' => 'map-message',
+				),
+			);
 			$block['content']['wrapper']['form-wrapper'] = array(
 				'#type' => 'container',
 				'#attributes' => array(
@@ -129,6 +138,12 @@ function apprenticeships_map_block_view($delta = '') {
 		case 'apprenticeships_map_internal':
 			
 			$location = 'internal';
+
+			$apprenticeships_map_settings = array(
+				'basePath' => drupal_get_path('module', 'apprenticeships_map'),
+				'mapID' => 'map-canvas-internal',
+			);
+
 			$block['subject'] = t('Find an Australian Apprenticeship Centre');
 			foreach ($urls as $url) {
 				if($url == current_path()) {
@@ -185,18 +200,25 @@ function apprenticeships_map_block_view($delta = '') {
 					'id' => 'map-overlay',
 				),
 			);
+			$block['content']['wrapper']['map-message'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'id' => 'map-message',
+				),
+			);
 			$block['content']['wrapper']['form-wrapper'] = array(
 				'#type' => 'container',
 				'#attributes' => array(
 					'class' => $location . '-map-form-wrapper',
 				),
 			);
-			$block['content']['wrapper']['form-wrapper']['text'] = array(
-				'#prefix' => '<p>',
-				'#markup' => 'Enter your search terms below. You can do a simple text search for the city, postcode or company name.',
-				'#suffix' => '</p>',
+			$block['content']['wrapper']['form-wrapper']['form-body'] = drupal_get_form('apprenticeships_map_aac_search');
+			$block['content']['wrapper']['result-container'] = array(
+				'#type' => 'container',
+				'#attributes' => array(
+					'id' => 'result-container',
+				),
 			);
-			$block['content']['wrapper']['form-wrapper']['form-body'] = drupal_get_form('apprenticeships_map_aac_search', $location);
 		break;
 	}
 	return $block;
@@ -397,7 +419,7 @@ function _apprenticeships_map_geocode($loc) {
 	// Create the $geocode_object variable from the decoded JSON object pulled from $url.
 	$geocode_object = json_decode( file_get_contents($url) );
 
-	// Create a $go array to hold the lat and long.
+	// Create a $geo array to hold the lat and long.
 	$geo = array();
 	// Validate the data return from the object.
 	if(count($geocode_object->results) > 0 && isset($geocode_object->results[0]->geometry->location)) {

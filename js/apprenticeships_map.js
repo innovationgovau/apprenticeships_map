@@ -4,44 +4,40 @@
  * This JS file presents the map on the home pahe of Australian Apprenticeships. It also powers the 
  * internal view of the same AAC data, as well as power the internal Australian Apprenticeships Ambassadors 
  * map.
- *
- * 1. Initialise map and turn on 'throbber' overlay.
- * 2. Initialise form functions.
- * 3. Load the markers.
- * 4. Add infoboxes to markers.
- * 5. Add markers to clustering system and turn off 'throbber' overlay.
- * 6. Power user loop:
- * 		a) Parse search 
- *		b) Obtain geocode
- *		c) Parse geocode
- *		d) Plot geocode.
- *		e) Move map to geocode.
- *		f) Perform auto zooming.
- *		g) Provide feedback.
- *		h) Provide popups. 
- *
- * @TODO: Build generic messaging function for the feedback loop. 
  */
 
 
 jQuery(function ($) {
 	// Initialise some global variables.
-	var firstSearch = true, map, pinBounds, cluster, url = "/map_do_search", markers = [], infoWindow, mapCenter, noCount = false;
+	var resultContainer, zoomInit, zoomAuto, firstSearch = true, map, pinBounds = new google.maps.LatLngBounds(), cluster, url = "/map_do_search", markers = [], infoWindow, mapCenter, mapID = Drupal.settings.apprenticeships_map.mapID;
 
 /**
  * Initialise function.
  */
 
 	var initialize = function() {
+
+		// Set some initial variables depending on where the map is (internal/home).
+		switch (mapID) {
+			case 'map-canvas-home':
+				zoomInit = 3;
+				zoomAuto = 9;
+				break;
+			case 'map-canvas-internal':
+				zoomInit = 4;
+				zoomAuto = 11;
+				resultContainer = $('#result-container');
+				break;
+		}
+
 		// Create a map options variable.
 		var mapOptions = {
 			center: new google.maps.LatLng(
 				-27.226655302429965, 
 				134.63918749999996
 			),
-			zoom: 3,
+			zoom: zoomInit,
 			mapTypeId: google.maps.MapTypeId.ROADMAP,
-			streetViewControl: false,
 			disableDefaultUI: true,
 		};
 
@@ -62,8 +58,8 @@ jQuery(function ($) {
 			infoBoxClearance: new google.maps.Size(1, 1),
 		});
 
-		// Initialise the map with the mapOptions variable.
-		map = new google.maps.Map(document.getElementById("map-canvas-home"), mapOptions);
+		// Initialise the map with the mapOptions variable. The element ID is passed in by the Drupal settings object.
+		map = new google.maps.Map(document.getElementById(mapID), mapOptions);
 
 		// Ensure that the initial map center is filled.
 		mapCenter = map.getCenter();
@@ -84,8 +80,11 @@ jQuery(function ($) {
 		// Count the markers once the map is idle. This function will always work.
 		google.maps.event.addListener(map, 'idle', function() {
 			countMarkers();
-			$('#map-overlay').addClass('hidden');
 		});
+		google.maps.event.addListener(map, 'zoom_changed', function() {
+			loadMarkers(urlString);
+
+		})
 	};
 
 /**
@@ -101,8 +100,8 @@ jQuery(function ($) {
 			parameter.push("term=" + term);
 		}
 		var urlString = url + "?" + parameter.join("&");
+		$('#map-message').hide();
 		loadMarkers(urlString);
-		google.maps.event.addListener(map, 'idle', countMarkers);
 	};
 
 /**
@@ -112,9 +111,7 @@ jQuery(function ($) {
 	var formSubmit = function() {
 		$("#apprenticeships-map-aac-search").submit(function(event) {
 			event.preventDefault();
-			if ($('#map-overlay').hasClass('hidden')) {
-				$('#map-overlay').removeClass('hidden');
-			}
+			$('#map-overlay').show();
 			updateResult($("#edit-location").val(), $("#edit-keywords").val());
 			geocodeSearch();  
 		});
@@ -165,8 +162,6 @@ jQuery(function ($) {
 	 	// Get the data from the JSON-encoded URL.
 	 	$.getJSON(url, function(data) {
 	 		// This is the 'success' function for the $.getJSON function.
-	 		pinBounds = new google.maps.LatLngBounds();
-
 	 		// For each return data item (address), build a marker using the setMarkers function.
 	 		$.each(data, function(i, item) {
 	 			// Perform some validation checks
@@ -176,13 +171,26 @@ jQuery(function ($) {
 	 					markers.push(setMarkers(item));
 	 				}
 	 			}
+	 			// If the marker is in the current bounds, render the result out under the map.
+				if (resultContainer) {
+					var itemPosition = new google.maps.LatLng(item.geo.lat, item.geo.lon);
+					if (map.getBounds().contains(itemPosition)) {
+						renderResult(item);
+					}
+				}
 	 		});
+
+
+
+	 		// Now that all the markers have been added, turn the throbber off.
+	 		$('#map-overlay').hide();
+
 	 		// Count the markers.
 	 		countMarkers();
 
 	 		// If the data doesn't exist, fail out.
 	 		if (data.length === 0) {
-	 			countMarkers('No Australian Apprenticeship Centres were found. Try altering your search.', 'warning');	
+	 			setMessage('No Australian Apprenticeship Centres were found. Try altering your search.', 'warning');	
 	 			return;
 	 		}
 	 	});
@@ -193,28 +201,26 @@ jQuery(function ($) {
  */
 
 	var setMarkers = function(item) {
-		var myLatLng = new google.maps.LatLng(item.geo.lat, item.geo.lon);
+		var position = new google.maps.LatLng(item.geo.lat, item.geo.lon);
 		var marker = new google.maps.Marker({
-			position: myLatLng,
+			position: position,
 			map: map,
 			title: item.title,
 		});
 
-		pinBounds.extend(myLatLng);
-		
+		pinBounds.extend(position);
+
 		// Add the new marker to the cluster layer.
 		cluster.addMarker(marker);
 
 		// Add click functionality to the marker
 		google.maps.event.addListener(marker, 'click', function() {
-			$('#map-feedback').addClass('hidden');
 			wrapper = $('<div class="infoBox"/>');
 			wrapper.append(renderTitle(item.title, item.alias));
 			wrapper.append(renderAddress(item));
 			wrapper.append('<span class="triangle"></span>');
 			infoWindow.close();
 			infoWindow.setContent(wrapper.html());
-			google.maps.event.addListener(infoWindow, 'closeclick', showFeedback);
 			infoWindow.open(map, marker);
 		});
 
@@ -228,7 +234,7 @@ jQuery(function ($) {
 
 	var geocodeSearch = function() {
  		// Check whether the form field has a value. If it does, then geocode the value.
- 		if ($('#edit-location').val() != '') {
+ 		if ($('#edit-location').val() !== '') {
  			var address = $('#edit-location').val();
  			var geocoder = new google.maps.Geocoder();
  			var ne = new google.maps.LatLng(10.41, 153.38);
@@ -248,13 +254,18 @@ jQuery(function ($) {
 				},
 				function(results, status) {
 					if (status == google.maps.GeocoderStatus.OK) {
-						map.fitBounds(results[0].geometry.viewport);
+
+						// Center the map on the location of the geocode.
 						map.setCenter(results[0].geometry.location);
+
+						// Make sure the mapCenter variable is updated, in case the viewport is resized.
 						mapCenter = map.getCenter();
-						map.setZoom(9); //Set the map to a more usable zoom
+
+						//Set the map to a more usable zoom
+						map.setZoom(zoomAuto); 
 						autoZoom();
 					} else { 
-						countMarkers('An error has occurred with the geocoding service. Please try again.', 'warning');
+						setMessage('An error has occurred with the geocoding service. Please try again.', 'warning');
 					}
 				});
 			} else {
@@ -269,25 +280,23 @@ jQuery(function ($) {
 				},
 				function(results, status) {
 					if (status == google.maps.GeocoderStatus.OK) {
-						map.fitBounds(results[0].geometry.viewport);
 						map.setCenter(results[0].geometry.location);
 						mapCenter = map.getCenter();
-						map.setZoom(9);
+						map.setZoom(zoomAuto);
 						autoZoom();
 						firstSearch = false;
 					} else {
-						countMarkers('An error has occurred with the geocoding service. Please try again.', 'warning');
+						setMessage('An error has occurred with the geocoding service. Please try again.', 'warning');
 					}
 				});
 			}
-
-			// If the form field has no value, then just display everything.
 		} else {
+			// If the form field has no value, then just display everything.
 			map.fitBounds(pinBounds);
 		}
 
 		// Check if the zoom is too high. If it is, prevent any further zooming.
-		if (map.getZoom() > 16) map.setZoom(16); 
+		//if (map.getZoom() > 16) map.setZoom(16); 
 	};
 
 /**
@@ -332,7 +341,127 @@ jQuery(function ($) {
 		}
 		markers = [];
 		cluster.clearMarkers();
+
+		// Empty the result container.
+		$(resultContainer).empty();
+
 	};
+
+/**
+ * Function to render addresses underneath the internal map only.
+ */
+
+	var renderResult = function(item) {
+		console.log(item)
+
+		// Define the wrapper.
+		var wrapper = $('<div class="map-item"/>');
+
+		// Add the title with the link
+		wrapper.append(renderTitle(item.title, item.alias));
+
+		// Add the address
+		wrapper.append(renderAddress(item));
+
+		// Add the freecall number, if it exists.
+		if(item.freecall !==  undefined){
+			wrapper.append(renderNumber(item.freecall, 'Freecall: '));
+		}
+
+		// Add the telephone number, if it exists.
+		if(item.phone !==  undefined){
+			wrapper.append(renderNumber(item.phone, 'Tel: '));
+		}
+
+		// Add the fax number, if it exists.
+		if(item.fax !==  undefined){
+			wrapper.append(renderNumber(item.fax, 'Fax: '));
+		}
+
+		// Add the email address, if it exists.
+		if(item.email !==  undefined){
+			wrapper.append(renderEmail(item.email));
+		}
+
+		// Add the website, if it exists.
+		if(item.website !==  undefined){
+			var title;
+			if(item.website == null) {
+				title = item.title;
+			} else {
+				title = item.website.title;
+			}
+			wrapper.append(renderWebsite(title, item.website.url));
+		}
+
+		// Add the AAC type, if it exists.
+		if(item.type !==  undefined){
+			wrapper.append(renderNumber(item.type, 'Type: '));
+		}
+
+		// Add everything to the result container.
+		$(resultContainer).append(wrapper);
+	}
+
+/**
+ * Parse and return center website html markup 
+ * @params {String} title Center website title or center name
+ * @params {String} url Link to center homepage
+ * @return {object} jQuery HTML Object
+ */
+
+	var renderWebsite = function(title, url){
+		var wrapper = $('<div class="map-item-website"><p></p></div>'),
+		label = $('<strong>Website: </strong>'),
+		link = $('<a href=""></a>');
+
+		link.attr('href', 'http://' + url);
+		link.text(title);
+
+		$(wrapper).append(label).append(link);
+
+		return wrapper;
+	};
+
+/**
+ * Parse and return label/number html markup
+ * @params {String} callNum Number to render
+ * @params {String} prefix Text of number label
+ * @return {object} jQuery HTML Object
+ */
+
+	var renderNumber = function(num, prefix){
+		var wrapper = $('<div class="map-item-number"></div>'),
+		label = $('<strong>' + prefix + '</strong>');
+		content = $('<p></p>');
+
+		$(content).append(label).append(num);
+		$(wrapper).append(content);
+
+		return wrapper;
+	};
+
+
+/**
+ * Parse and return email html markup
+ * @params {String} email Email address
+ * @return {object} jQuery HTML Object
+ */
+
+var renderEmail = function(email){
+	var wrapper = $('<div class="map-item-email"><p></p></div>'),
+	label = $('<strong>Email: </strong>'),
+	link = $('<a href=""></a>');
+
+	$(link).attr('href', 'mailto:' + email);
+	$(link).text(email);
+
+
+	$(wrapper).append(label).append(link);
+
+	return wrapper;
+};
+
 
 /**
 * Parse and return title html markup 
@@ -360,17 +489,16 @@ jQuery(function ($) {
 * @return {object} jQuery HTML Object
 */
 	var renderAddress = function (item) {
-		var html = $('<div class="maps-address"></div>'),
-		content = $('<div class="maps-content"></div>'),
-		row = $('<div class="maps-item"></div>'),
+		var wrapper = $('<div class="map-address"></div>'),
+		row = $('<p></p>'),
 		postal = "";
 
 		if(item.street !== undefined) {
-			content.append(row.clone().text(item.street ));
+			wrapper.append(row.clone().text(item.street ));
 		}
 
 		if(item.premise !== undefined) {
-			content.append(row.clone().text(item.premise ));
+			wrapper.append(row.clone().text(item.premise ));
 		}
 
 		if(item.city !== undefined) {
@@ -385,22 +513,20 @@ jQuery(function ($) {
 			postal += ' ' + item.postcode;
 		}
 
-		content.append(row.clone().text(postal));
+		wrapper.append(row.clone().text(postal));
 
 		if(item.country !== undefined) {
-			content.append(row.clone().text(item.country ));
+			wrapper.append(row.clone().text(item.country ));
 		}
 
-		html.append(content);
-
-		return html;
+		return wrapper;
 	};
 
 /**
  * This function counts the markers currently visible on the map window.
  */
 
-	var countMarkers = function(message, type) {
+	var countMarkers = function() {
 			var markerCount = 0, pluralString = '', bounds = map.getBounds();
 			$.each(markers, function(i, marker) {
 				if(bounds.contains(marker.getPosition())) {
@@ -410,14 +536,16 @@ jQuery(function ($) {
 			if (markerCount !== 1) {
 				pluralString = 's';
 			}
-			if (markerCount !== 0) {
-				$('#map-feedback').html('<p>Showing <strong>' + markerCount + '</strong> AAC' + pluralString + '</p>').removeClass('hidden').show();
-			} else if (typeof message !== 'undefined') {
-				$('#map-feedback').html('<p>' + message + '</p>').removeClass().addClass(type).show();
-			} else {
-				$('#map-feedback').hide();
-			}
+			$('#map-feedback').html('<p>Showing <strong>' + markerCount + '</strong> AAC' + pluralString + '</p>').removeClass('hidden').show();
 	};
+
+/**
+ * This functions places a message in the middle of the map to inform the user of some error.
+ */
+
+ 	var setMessage = function(message, status) {
+ 		$('#map-message').show().html('<p>' + message + '</p>').removeClass().addClass(status);
+ 	}
 
 	// Core function to initialise the map on DOM load and kick everything off.
 	google.maps.event.addDomListener(window, 'load', initialize);
