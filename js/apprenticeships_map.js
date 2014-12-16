@@ -65,26 +65,31 @@ jQuery(function ($) {
 		mapCenter = map.getCenter();
 
 		google.maps.event.addDomListener(window, 'resize', function() {
-			map.setCenter(mapCenter)
+			map.setCenter(mapCenter);
 		});
 
 		// Now that the map exists, create the cluster layer.
 		cluster = new MarkerClusterer(map);
-
+		cluster.ignoreHidden = true;
+		google.maps.event.addListener(cluster, 'clusteringend', function() {
+			$('#map-overlay').hide();
+		})
 		// Load the markers
 		loadMarkers(url);
 
 		// Add form functionality.
 		formSubmit();
 
-		// Count the markers once the map is idle. This function will always work.
+		// Count the markers once the map is idle.
 		google.maps.event.addListener(map, 'idle', function() {
+			$('#map-overlay').hide();
 			countMarkers();
 		});
-		google.maps.event.addListener(map, 'zoom_changed', function() {
-			loadMarkers(urlString);
 
-		})
+		// Redraw the map when the zoom changes.
+		google.maps.event.addListener(map, 'zoom_changed', function() {
+			$('#map-overlay').show();
+		});
 	};
 
 /**
@@ -179,9 +184,7 @@ jQuery(function ($) {
 					}
 				}
 	 		});
-
-
-
+	 		
 	 		// Now that all the markers have been added, turn the throbber off.
 	 		$('#map-overlay').hide();
 
@@ -352,7 +355,6 @@ jQuery(function ($) {
  */
 
 	var renderResult = function(item) {
-		console.log(item)
 
 		// Define the wrapper.
 		var wrapper = $('<div class="map-item"/>');
@@ -364,38 +366,38 @@ jQuery(function ($) {
 		wrapper.append(renderAddress(item));
 
 		// Add the freecall number, if it exists.
-		if(item.freecall !==  undefined){
+		if(item.freecall) {
 			wrapper.append(renderNumber(item.freecall, 'Freecall: '));
 		}
 
 		// Add the telephone number, if it exists.
-		if(item.phone !==  undefined){
+		if(item.phone) {
 			wrapper.append(renderNumber(item.phone, 'Tel: '));
 		}
 
 		// Add the fax number, if it exists.
-		if(item.fax !==  undefined){
+		if(item.fax) {
 			wrapper.append(renderNumber(item.fax, 'Fax: '));
 		}
 
 		// Add the email address, if it exists.
-		if(item.email !==  undefined){
+		if(item.email) {
 			wrapper.append(renderEmail(item.email));
 		}
 
 		// Add the website, if it exists.
-		if(item.website !==  undefined){
+		if(item.website) {
 			var title;
-			if(item.website == null) {
-				title = item.title;
-			} else {
+			if(item.website.title) {
 				title = item.website.title;
+			} else {
+				title = item.title;
 			}
 			wrapper.append(renderWebsite(title, item.website.url));
 		}
 
 		// Add the AAC type, if it exists.
-		if(item.type !==  undefined){
+		if(item.type) {
 			wrapper.append(renderNumber(item.type, 'Type: '));
 		}
 
@@ -414,11 +416,13 @@ jQuery(function ($) {
 		var wrapper = $('<div class="map-item-website"><p></p></div>'),
 		label = $('<strong>Website: </strong>'),
 		link = $('<a href=""></a>');
+		content = $('<p></p>');
 
 		link.attr('href', 'http://' + url);
 		link.text(title);
 
-		$(wrapper).append(label).append(link);
+		$(content).append(label).append(link);
+		$(wrapper).append(content);
 
 		return wrapper;
 	};
@@ -452,12 +456,12 @@ var renderEmail = function(email){
 	var wrapper = $('<div class="map-item-email"><p></p></div>'),
 	label = $('<strong>Email: </strong>'),
 	link = $('<a href=""></a>');
+	content = $('<p></p>');
 
 	$(link).attr('href', 'mailto:' + email);
 	$(link).text(email);
-
-
-	$(wrapper).append(label).append(link);
+	$(content).append(label).append(link);
+	$(wrapper).append(content);
 
 	return wrapper;
 };
@@ -471,14 +475,14 @@ var renderEmail = function(email){
 */
 	var renderTitle = function(title, url){
 		var wrapper = $('<div class="map-title"></div>'),
-		header = $('<h3></h3>'),
+		heading = $('<h3></h3>'),
 		link = $('<a href=""></a>');
 
 		link.attr('href', url);
 		link.text(title);
 
-		header.append(link);
-		wrapper.append(header);
+		heading.append(link);
+		wrapper.append(heading);
 
 		return wrapper;
 	};
@@ -493,29 +497,29 @@ var renderEmail = function(email){
 		row = $('<p></p>'),
 		postal = "";
 
-		if(item.street !== undefined) {
+		if(item.street) {
 			wrapper.append(row.clone().text(item.street ));
 		}
 
-		if(item.premise !== undefined) {
+		if(item.premise) {
 			wrapper.append(row.clone().text(item.premise ));
 		}
 
-		if(item.city !== undefined) {
+		if(item.city) {
 			postal += item.city;
 		}
 
-		if(item.state !== undefined) {
+		if(item.state) {
 			postal += ' ' + item.state;
 		}
 
-		if(item.postcode !== undefined) {
+		if(item.postcode) {
 			postal += ' ' + item.postcode;
 		}
 
 		wrapper.append(row.clone().text(postal));
 
-		if(item.country !== undefined) {
+		if(item.country) {
 			wrapper.append(row.clone().text(item.country ));
 		}
 
