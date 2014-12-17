@@ -17,6 +17,9 @@ jQuery(function ($) {
 
 	var initialize = function() {
 
+		// Turn on the throbber.
+		$('#map-overlay').show();
+
 		// Set some initial variables depending on where the map is (internal/home).
 		switch (mapID) {
 			case 'map-canvas-home':
