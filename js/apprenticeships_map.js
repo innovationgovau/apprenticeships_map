@@ -74,24 +74,22 @@ jQuery(function ($) {
 		// Now that the map exists, create the cluster layer.
 		cluster = new MarkerClusterer(map);
 		cluster.ignoreHidden = true;
-		google.maps.event.addListener(cluster, 'clusteringend', function() {
-			$('#map-overlay').hide();
-		})
+
 		// Load the markers
 		loadMarkers(url);
 
 		// Add form functionality.
 		formSubmit();
 
-		// Count the markers once the map is idle.
-		google.maps.event.addListener(map, 'idle', function() {
-			$('#map-overlay').hide();
-			countMarkers();
-		});
-
-		// Redraw the map when the zoom changes.
+		// When the zoom changes and sHow the overlay.
 		google.maps.event.addListener(map, 'zoom_changed', function() {
 			$('#map-overlay').show();
+
+			// Count the markers once the map is idle, and hide the overlay.
+			google.maps.event.addListener(map, 'tilesloaded', function() {
+				countMarkers();
+				$('#map-overlay').hide();
+			});
 		});
 	};
 
@@ -187,12 +185,17 @@ jQuery(function ($) {
 					}
 				}
 	 		});
-	 		
-	 		// Now that all the markers have been added, turn the throbber off.
-	 		$('#map-overlay').hide();
 
 	 		// Count the markers.
 	 		countMarkers();
+
+	 		// Add the markers to the cluster layer.
+			if (markers.length !== 0) {
+				cluster.addMarkers(markers);
+
+				// The map is now more or less complete, so hide the overlay.
+				$('#map-overlay').hide();
+			}
 
 	 		// If the data doesn't exist, fail out.
 	 		if (data.length === 0) {
@@ -215,9 +218,6 @@ jQuery(function ($) {
 		});
 
 		pinBounds.extend(position);
-
-		// Add the new marker to the cluster layer.
-		cluster.addMarker(marker);
 
 		// Add click functionality to the marker
 		google.maps.event.addListener(marker, 'click', function() {
@@ -297,12 +297,8 @@ jQuery(function ($) {
 				});
 			}
 		} else {
-			// If the form field has no value, then just display everything.
 			map.fitBounds(pinBounds);
 		}
-
-		// Check if the zoom is too high. If it is, prevent any further zooming.
-		//if (map.getZoom() > 16) map.setZoom(16); 
 	};
 
 /**
@@ -534,16 +530,16 @@ var renderEmail = function(email){
  */
 
 	var countMarkers = function() {
-			var markerCount = 0, pluralString = '', bounds = map.getBounds();
-			$.each(markers, function(i, marker) {
-				if(bounds.contains(marker.getPosition())) {
-					markerCount++;
-				}			
-			});
-			if (markerCount !== 1) {
-				pluralString = 's';
-			}
-			$('#map-feedback').html('<p>Showing <strong>' + markerCount + '</strong> AAC' + pluralString + '</p>').removeClass('hidden').show();
+		var markerCount = 0, pluralString = '', bounds = map.getBounds();
+		$.each(markers, function(i, marker) {
+			if(bounds.contains(marker.getPosition())) {
+				markerCount++;
+			}			
+		});
+		if (markerCount !== 1) {
+			pluralString = 's';
+		}
+		$('#map-feedback').html('<p>Showing <strong>' + markerCount + '</strong> AAC' + pluralString + '</p>').removeClass('hidden').show();
 	};
 
 /**
@@ -555,5 +551,6 @@ var renderEmail = function(email){
  	}
 
 	// Core function to initialise the map on DOM load and kick everything off.
+	$('#map-overlay').show();
 	google.maps.event.addDomListener(window, 'load', initialize);
 });
