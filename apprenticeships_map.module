@@ -251,15 +251,16 @@ function apprenticeships_map_aac_search($form_state, $location) {
 		),
 	);
 
+	$form['region_search'] = array(
+		'#type' => 'select',
+		'#title' => t('Search by region'),
+		'#options' => _apprenticeships_map_get_options('region'),
+		'#empty_option' => t('Select a region'),
+	);
+
 	$form['submit'] = array(
 		'#prefix' => '<div class="search-button">',
 		'#markup' => '<input type="submit" value="Search" class="form-submit">',
-		'#suffix' => '</div>',
-	);
-
-	$form['region_search']['content'] = array(
-		'#prefix' => '<div class="region-search">',
-		'#markup' => t('<a class="button" href="@url" title="Find my AAC by region">Search by region</a>', array('@url' => url('find-my-aac/by-region'))),
 		'#suffix' => '</div>',
 	);
 
@@ -278,6 +279,19 @@ function apprenticeships_map_aac_search_validate($form, &$form_state) {
 		form_set_error('location', 'Please enter a location or one or more keywords.');
 		form_set_error('keywords', '');
 	}
+}
+
+/**
+ * Callback function to get options for form elements.
+ */
+
+function _apprenticeships_map_get_options($machine_name) {
+  $v = taxonomy_vocabulary_machine_name_load($machine_name);
+  $terms = taxonomy_get_tree($v->vid);
+  foreach ($terms as $term) {
+    $options[$term->tid] = $term->name;
+  }
+  return $options;
 }
 
 
@@ -314,12 +328,10 @@ function apprenticeships_map_do_search(){
 	//Get the keywords from the URL. These are passed in by the search page. Make sure that the request parameters are there. If they aren't, set them to empty (otherwise errors ensue).
 	$keywords = isset($_REQUEST["term"]) ? $_REQUEST["term"] : '';
 	$location = isset($_REQUEST["location"]) ? urlencode( $_REQUEST["location"] ) : '';
-
-	// This is a stub for later implementation of a better region search.
-	//$region = isset($_REQUEST["region"]) ? $_REQUEST["region"] : '';
+	$region = isset($_REQUEST["region"]) ? $_REQUEST["region"] : '';
 
 	// This 'if' block is the 'default' position - no search has been run so it returns all objects.
-	if(empty($location) && empty($keywords)) {
+	if(empty($location) && empty($keywords) && empty($region)) {
 
 		// Set up a cache to speed things up.
 		if (variable_get('apprenticeships_map_cache') === 1) {
@@ -343,13 +355,10 @@ function apprenticeships_map_do_search(){
 		if (variable_get('apprenticeships_map_cache') === 1) {
 			cache_set($cid, $results, 'cache', strtotime('+1 day'));
 		}
-
-		// Return the $results array, passing it through the _apprenticeships_map_populate_nodes function.
-		return _apprenticeships_map_populate_nodes($results);
 	}
 
 	// This 'if' block is run if only 'location' is filled in.
-	if(!empty($location) && empty($keywords)) {
+	if(!empty($location) && empty($keywords) && empty($region)) {
 
 		// Get the lat and long from the geocode function.
 
@@ -366,15 +375,12 @@ function apprenticeships_map_do_search(){
 			":lat" => $geo['lat'],
 			":lng" => $geo['lng'],
 		)) -> fetchAll();
-
-		// Return the $results array, passing it through the _apprenticeships_map_populate_nodes function.
-		return _apprenticeships_map_populate_nodes($results);
 	}
 	
 	// This 'if' block is run if 'keywords' is filled in. This runs a search against the search server, but doesn't require a distance calculation as there's no 'origin'.
 	if (!empty($keywords)) {
 
-		// Query the search index. This uses db_select because ity is querying the search index.
+		// Query the search index. This uses db_select because it is querying the search index.
 		$query = db_select('search_index', 'i', array(
 			'target' => 'slave',
 		))->extend('SearchQuery');
@@ -406,10 +412,27 @@ function apprenticeships_map_do_search(){
 
 		// Execute the query.
 		$results = $query->execute()->fetchAll();
-
-		// Send the $results variable back through the _apprenticeships_map_populate_nodes function.
-		return _apprenticeships_map_populate_nodes($results);
 	}
+
+	// This 'if' block is run if a region is selected. The form sends through the tid of the taxonomy term.
+	if (!empty($region)) {
+
+		// Set up the SQL query text.
+		$sql = "SELECT node.nid, taxonomy_index.tid
+				FROM node, taxonomy_index
+				WHERE node.type = 'australian_apprenticeship_centre'
+				AND node.status = 1
+				AND node.nid = taxonomy_index.nid
+				AND taxonomy_index.tid = :tid
+				ORDER BY title";
+
+		// Set the $result variable to the results of the db_query function, using the $sql string.
+		$results = db_query($sql, array(
+			":tid" => $region,
+		)) -> fetchAll();
+	}
+	// Return the $results array, passing it through the _apprenticeships_map_populate_nodes function.
+	return _apprenticeships_map_populate_nodes($results);
 }
 
 function _apprenticeships_map_geocode($loc) {

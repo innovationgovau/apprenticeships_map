@@ -18,7 +18,7 @@ jQuery(function ($) {
 	var initialize = function() {
 
 		// Turn on the throbber.
-		$('#map-overlay').show();
+		$('#map-overlay').hide();
 
 		// Set some initial variables depending on where the map is (internal/home).
 		switch (mapID) {
@@ -58,7 +58,7 @@ jQuery(function ($) {
 			},
 			closeBoxMargin: "0 0 0 0",
 			closeBoxURL: Drupal.settings.apprenticeships_map.basePath + "/img/close-button.png",
-			infoBoxClearance: new google.maps.Size(1, 1),
+			infoBoxClearance: new google.maps.Size(10, 10),
 		});
 
 		// Initialise the map with the mapOptions variable. The element ID is passed in by the Drupal settings object.
@@ -81,14 +81,14 @@ jQuery(function ($) {
 		// Add form functionality.
 		formSubmit();
 
-		// When the zoom changes and sHow the overlay.
+		// When the zoom changes and show the overlay.
 		google.maps.event.addListener(map, 'zoom_changed', function() {
-			$('#map-overlay').show();
+			//$('#map-overlay').show();
 
 			// Count the markers once the map is idle, and hide the overlay.
-			google.maps.event.addListener(map, 'tilesloaded', function() {
+			google.maps.event.addListener(cluster, 'clusteringend', function() {
 				countMarkers();
-				$('#map-overlay').hide();
+				//$('#map-overlay').hide();
 			});
 		});
 	};
@@ -97,7 +97,7 @@ jQuery(function ($) {
  * Update the result based on the form submission.
  */
 
-	var updateResult = function(location,term) {
+	var updateResult = function(location,term,region) {
 		var parameter = [];
 		if (location != undefined || location != "" ) {
 			parameter.push("location=" + location);
@@ -105,8 +105,12 @@ jQuery(function ($) {
 		if (term != undefined || term != "" ) {
 			parameter.push("term=" + term);
 		}
+		if (region != undefined || region != "") {
+			parameter.push("region=" + region);
+		}
 		var urlString = url + "?" + parameter.join("&");
 		$('#map-message').hide();
+		//$('#map-overlay').show();
 		loadMarkers(urlString);
 	};
 
@@ -117,8 +121,8 @@ jQuery(function ($) {
 	var formSubmit = function() {
 		$("#apprenticeships-map-aac-search").submit(function(event) {
 			event.preventDefault();
-			$('#map-overlay').show();
-			updateResult($("#edit-location").val(), $("#edit-keywords").val());
+			//$('#map-overlay').show();
+			updateResult($("#edit-location").val(), $("#edit-keywords").val(), $('#edit-region-search').val());
 			geocodeSearch();  
 		});
 	};
@@ -194,7 +198,7 @@ jQuery(function ($) {
 				cluster.addMarkers(markers);
 
 				// The map is now more or less complete, so hide the overlay.
-				$('#map-overlay').hide();
+				//$('#map-overlay').hide();
 			}
 
 	 		// If the data doesn't exist, fail out.
@@ -241,6 +245,7 @@ jQuery(function ($) {
 	var geocodeSearch = function() {
  		// Check whether the form field has a value. If it does, then geocode the value.
  		if ($('#edit-location').val() !== '') {
+ 			//$('#map-overlay').show();
  			var address = $('#edit-location').val();
  			var geocoder = new google.maps.Geocoder();
  			var ne = new google.maps.LatLng(10.41, 153.38);
@@ -551,6 +556,6 @@ var renderEmail = function(email){
  	}
 
 	// Core function to initialise the map on DOM load and kick everything off.
-	$('#map-overlay').show();
+	//$('#map-overlay').show();
 	google.maps.event.addDomListener(window, 'load', initialize);
 });
