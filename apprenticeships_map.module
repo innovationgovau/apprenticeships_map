@@ -55,6 +55,7 @@ function apprenticeships_map_block_view($delta = '') {
 	// Get the URLs from the admin form.
 	$url_string = variable_get('apprenticeships_map_load_js');
 	$urls = explode(',', $url_string);
+	$clientid = variable_get('apprenticeships_map_clientid');
 
 	switch ($delta) {
 		case 'apprenticeships_map_home':
@@ -76,7 +77,7 @@ function apprenticeships_map_block_view($delta = '') {
 						),
 						'type' => 'setting',
 					),
-					'https://maps.googleapis.com/maps/api/js?client=gme-readingroom&sensor=true' => array(
+					'https://maps.googleapis.com/maps/api/js?client=' . $clientid . '&sensor=true' => array(
 	 	    		'type' => 'external',
 					),
 					drupal_get_path('module', 'apprenticeships_map') . '/js/infobox_packed.js' => array(
@@ -156,7 +157,7 @@ function apprenticeships_map_block_view($delta = '') {
 							),
 							'type' => 'setting',
 						),
-						'https://maps.googleapis.com/maps/api/js?client=gme-readingroom&sensor=true' => array(
+						'https://maps.googleapis.com/maps/api/js?client=' . $clientid . '&sensor=true' => array(
 		 	    		'type' => 'external',
 						),
 						drupal_get_path('module', 'apprenticeships_map') . '/js/infobox_packed.js' => array(
@@ -557,6 +558,13 @@ function _apprenticeships_map_admin_form() {
 		'#title' => 'Cache database queries?',
 		'#default_value' => variable_get('apprenticeships_map_cache',''),
 		'#description' => t('Caching the database results can speed things up substantially.'),
+	);
+	$form['apprenticeships_map_clientid'] = array(
+		'#type' => 'textfield',
+		'#title' => 'Google Maps client ID',
+		'#default_value' => variable_get('apprenticeships_map_clientid',''),
+		'#description' => t('The client ID is required to enable the map javascript.'),
+		'#required' => TRUE,
 	);
   return system_settings_form($form);
 }
